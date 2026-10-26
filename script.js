@@ -31,7 +31,6 @@ async function loadPlayers() {
 }
 
 function tagFor(p) {
-  // ID 1 becomes @username#0001. Non-numeric IDs are shown as-is after the #.
   const num = /^\d+$/.test(p.id) ? p.id.padStart(4, "0") : p.id;
   return "@" + p.username + "#" + num;
 }
@@ -127,8 +126,8 @@ function validate() {
   const id = $("f_id").value.trim();
   const exists = players.some(p => p.id === id);
   $("formNote").textContent = id
-    ? (exists ? "ID exists: filled fields will update this player, empty stats stay the same."
-              : "New ID: a new player will be created (empty stats start at 0).")
+    ? (exists ? "This player exists: filled fields will update them, empty stats stay the same."
+              : "New player: a new profile will be created (empty stats start at 0).")
     : "";
   $("saveBtn").disabled = !ok;
 }
