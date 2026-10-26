@@ -70,50 +70,18 @@ const SPRITE = `
 </svg>`;
 document.body.insertAdjacentHTML("afterbegin", SPRITE);
 
-// Each icon sits in its own colored square
+// Icon in its own colored square (used in the badge picker)
 function iconSvg(key) {
   return `<span class="bsq bsq-${key}"><svg class="bicon" viewBox="0 0 24 24"><use href="#b-${key}"/></svg></span>`;
+}
+// Icon + name inside a colored chip (used on the cards and the profile popup)
+function chipHtml(key) {
+  return `<span class="bchip bchip-${key}"><svg class="bicon" viewBox="0 0 24 24"><use href="#b-${key}"/></svg>${BADGE_NAME[key]}</span>`;
 }
 function sortBadges(list) {
   const set = new Set(list || []);
   return BADGES.map(b => b.key).filter(k => set.has(k));
 }
-
-/* ---------- Tooltip (hover on PC, tap on phone/tablet) ---------- */
-const tip = document.createElement("div");
-tip.className = "tip";
-document.body.append(tip);
-let tipEl = null;
-const canHover = window.matchMedia("(hover: hover)").matches;
-
-function showTip(el, text) {
-  tip.textContent = text;
-  tip.classList.add("show");
-  tipEl = el;
-  const r = el.getBoundingClientRect();
-  const tw = tip.offsetWidth, th = tip.offsetHeight;
-  let left = r.left + r.width / 2 - tw / 2;
-  left = Math.max(6, Math.min(left, window.innerWidth - tw - 6));
-  let top = r.top - th - 8;
-  if (top < 6) top = r.bottom + 8;
-  tip.style.left = left + "px";
-  tip.style.top = top + "px";
-}
-function hideTip() { tip.classList.remove("show"); tipEl = null; }
-function attachTip(el, text) {
-  el.tabIndex = 0;
-  el.setAttribute("aria-label", text);
-  el.addEventListener("mouseenter", () => { if (canHover) showTip(el, text); });
-  el.addEventListener("mouseleave", hideTip);
-  el.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (canHover) showTip(el, text);
-    else if (tipEl === el) hideTip();
-    else showTip(el, text);
-  });
-}
-document.addEventListener("click", hideTip);
-window.addEventListener("scroll", hideTip, true);
 
 const $ = (id) => document.getElementById(id);
 let players = [];
@@ -132,8 +100,41 @@ function tagFor(p) {
   return "@" + p.username + "#" + num;
 }
 
+// Circle profile picture. Uses p.avatar_url if you ever add that column, otherwise the first letter.
+function makeAvatar(p) {
+  const av = document.createElement("div");
+  av.className = "avatar";
+  if (p.avatar_url) {
+    const img = document.createElement("img");
+    img.src = p.avatar_url; img.alt = "";
+    av.append(img);
+  } else {
+    av.textContent = (p.display_name[0] || "?").toUpperCase();
+  }
+  return av;
+}
+
+// Pfp on the left, then display name, username and badge chips
+function makeHead(p) {
+  const head = document.createElement("div"); head.className = "p-head";
+  const info = document.createElement("div"); info.className = "p-info";
+
+  const nm = document.createElement("div"); nm.className = "name"; nm.textContent = p.display_name;
+  const us = document.createElement("div"); us.className = "user"; us.textContent = tagFor(p);
+  info.append(nm, us);
+
+  const owned = sortBadges(p.badges);
+  if (owned.length) {
+    const chips = document.createElement("div"); chips.className = "chips";
+    chips.innerHTML = owned.map(chipHtml).join("");
+    info.append(chips);
+  }
+
+  head.append(makeAvatar(p), info);
+  return head;
+}
+
 function render() {
-  hideTip();
   const q = $("search").value.trim().toLowerCase();
   const shown = players.filter(p =>
     p.display_name.toLowerCase().includes(q) ||
@@ -147,44 +148,44 @@ function render() {
   for (const p of shown) {
     const card = document.createElement("div");
     card.className = "card";
-    const rows = [
-      ["Rounds Won", p.rounds_won], ["Rounds Lost", p.rounds_lost],
-      ["Perfect Predictions", p.perfect_predictions], ["Imperfect Predictions", p.imperfect_predictions],
-      ["Gross Elo Earned", p.gross_elo_earned], ["Gross Elo Lost", p.gross_elo_lost],
-      ["Career Points", p.career_points],
-      ["Highest Single-Game Points", p.highest_single_game_points ?? 0],
-    ];
-    const av = document.createElement("div"); av.className = "avatar"; av.textContent = (p.display_name[0] || "?").toUpperCase();
-
-    const nameRow = document.createElement("div"); nameRow.className = "name-row";
-    const nm = document.createElement("div"); nm.className = "name"; nm.textContent = p.display_name;
-    nameRow.append(nm);
-
-    const owned = sortBadges(p.badges);
-    if (owned.length) {
-      const box = document.createElement("div"); box.className = "badges";
-      for (const key of owned) {
-        const b = document.createElement("span"); b.className = "badge";
-        b.innerHTML = iconSvg(key);
-        attachTip(b, BADGE_NAME[key]);
-        box.append(b);
-      }
-      nameRow.append(box);
-    }
-
-    const us = document.createElement("div"); us.className = "user"; us.textContent = tagFor(p);
-    card.append(av, nameRow, us);
-    for (const [k, v] of rows) {
-      const r = document.createElement("div"); r.className = "stat";
-      const a = document.createElement("span"); a.textContent = k;
-      const b = document.createElement("span"); b.textContent = v;
-      r.append(a, b); card.append(r);
-    }
+    const btn = document.createElement("button");
+    btn.className = "btn view"; btn.textContent = "View Profile";
+    btn.onclick = () => openProfile(p);
+    card.append(makeHead(p), btn);
     list.append(card);
   }
 }
 
 $("search").addEventListener("input", render);
+
+/* ---------- Profile popup (stats) ---------- */
+function openProfile(p) {
+  const rows = [
+    ["Rounds Won", p.rounds_won], ["Rounds Lost", p.rounds_lost],
+    ["Perfect Predictions", p.perfect_predictions], ["Imperfect Predictions", p.imperfect_predictions],
+    ["Gross Elo Earned", p.gross_elo_earned], ["Gross Elo Lost", p.gross_elo_lost],
+    ["Career Points", p.career_points],
+    ["Highest Single-Game Points", p.highest_single_game_points ?? 0],
+  ];
+  const body = $("profileBody");
+  body.innerHTML = "";
+  const head = makeHead(p); head.classList.add("big");
+  body.append(head);
+
+  const stats = document.createElement("div"); stats.className = "stats";
+  for (const [k, v] of rows) {
+    const r = document.createElement("div"); r.className = "stat";
+    const a = document.createElement("span"); a.textContent = k;
+    const b = document.createElement("span"); b.textContent = v;
+    r.append(a, b); stats.append(r);
+  }
+  body.append(stats);
+  $("profileModal").classList.remove("hidden");
+}
+function closeProfile() { $("profileModal").classList.add("hidden"); }
+$("profileClose").onclick = closeProfile;
+$("profileModal").addEventListener("click", (e) => { if (e.target === $("profileModal")) closeProfile(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeProfile(); });
 
 /* ---------- Password popup ---------- */
 $("updateBtn").onclick = () => {
@@ -206,7 +207,7 @@ $("pwOk").onclick = async () => {
 /* ---------- Badge picker (top of Update Info) ---------- */
 let selectedBadges = [];
 let pickerOpen = false;
-let badgesTouched = false;   // kept for the picker, no longer blocks auto-fill
+let badgesTouched = false;
 let syncedId = null;         // the existing ID whose info was auto-filled
 
 function renderPicker() {
