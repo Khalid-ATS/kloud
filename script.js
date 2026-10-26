@@ -15,7 +15,7 @@ const FIELDS = [
   { key: "elo_earned", label: "Gross Elo Earned", type: "delta" },
   { key: "elo_lost", label: "Gross Elo Lost", type: "delta" },
   { key: "career_points", label: "Overall Career Points", type: "delta" },
-  { key: "highest", label: "Highest Single-Game Points", type: "num" },
+  { key: "highest", label: "Highest Single-Game Points", type: "delta" },
 ];
 
 /* ---------- Badges ---------- */
@@ -41,10 +41,7 @@ const SPRITE = `
       <stop offset="0" stop-color="#ffe26b"/><stop offset=".55" stop-color="#f5b400"/><stop offset="1" stop-color="#c88400"/>
     </linearGradient>
     <linearGradient id="gFire" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffb84d"/><stop offset=".5" stop-color="#ff7a00"/><stop offset="1" stop-color="#e03400"/>
-    </linearGradient>
-    <linearGradient id="gFireIn" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff0a0"/><stop offset="1" stop-color="#ffa51f"/>
+      <stop offset="0" stop-color="#ff8a3d"/><stop offset=".5" stop-color="#ff3b30"/><stop offset="1" stop-color="#b80f1f"/>
     </linearGradient>
   </defs>
 
@@ -62,19 +59,20 @@ const SPRITE = `
   </symbol>
 
   <symbol id="b-star" viewBox="0 0 24 24">
-    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="url(#gStar)" stroke="#b07600" stroke-width="1" stroke-linejoin="round"/>
-    <path d="M12 4.6l1.9 3.9-1.9.6-1.9-.6z" fill="#fff" opacity=".35"/>
+    <path d="M12 3.2l2.5 5.3 5.8.8-4.2 4.1 1 5.8L12 16.4l-5.1 2.8 1-5.8-4.2-4.1 5.8-.8L12 3.2z"
+          fill="url(#gStar)" stroke="url(#gStar)" stroke-width="2.4" stroke-linejoin="round"/>
   </symbol>
 
   <symbol id="b-fire" viewBox="0 0 24 24">
-    <path d="M12 2.2C12.6 5.3 11 7 9.4 9C7.8 10.8 6 12.9 6 15.6C6 19 8.7 21.8 12 21.8C15.3 21.8 18 19 18 15.6C18 13.3 17 11.6 15.7 10.2C15.5 11.5 14.9 12.4 14 13C14.5 9.4 13.7 5.4 12 2.2Z" fill="url(#gFire)" stroke="#c23000" stroke-width=".7" stroke-linejoin="round"/>
-    <path d="M12 21.8C10.2 21.8 8.7 20.3 8.7 18.4C8.7 16.7 9.8 15.7 10.7 14.7C11.1 15.7 11.7 16.1 12.3 16.3C12.5 15.4 13 14.7 13.5 14.1C14.4 15.1 15.3 16.2 15.3 18.4C15.3 20.3 13.8 21.8 12 21.8Z" fill="url(#gFireIn)"/>
+    <path d="M13 2.6C13.4 6 16.8 8.6 17.8 12.4C18.8 16.4 16 21 12 21C8 21 5.4 18 6 14.4C6.4 12.1 7.9 10.6 9.1 9C9.3 10.3 9.9 11.1 10.8 11.4C10.6 8.2 11.1 4.7 13 2.6Z"
+          fill="url(#gFire)" stroke="url(#gFire)" stroke-width="1.6" stroke-linejoin="round"/>
   </symbol>
 </svg>`;
 document.body.insertAdjacentHTML("afterbegin", SPRITE);
 
+// Each icon sits in its own colored square
 function iconSvg(key) {
-  return `<svg class="bicon" viewBox="0 0 24 24"><use href="#b-${key}"/></svg>`;
+  return `<span class="bsq bsq-${key}"><svg class="bicon" viewBox="0 0 24 24"><use href="#b-${key}"/></svg></span>`;
 }
 function sortBadges(list) {
   const set = new Set(list || []);
