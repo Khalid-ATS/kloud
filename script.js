@@ -18,6 +18,105 @@ const FIELDS = [
   { key: "highest", label: "Highest Single-Game Points", type: "num" },
 ];
 
+/* ---------- Badges ---------- */
+const BADGES = [
+  { key: "crown", name: "Founder" },
+  { key: "heart", name: "Co Founder" },
+  { key: "star", name: "Grandmaster" },
+  { key: "fire", name: "Streak Master" },
+];
+const BADGE_NAME = Object.fromEntries(BADGES.map(b => [b.key, b.name]));
+
+// Hidden sprite with the custom gradient icons (not unicode emojis)
+const SPRITE = `
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="gCrown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6b0"/><stop offset=".5" stop-color="#ffd84a"/><stop offset="1" stop-color="#e3a400"/>
+    </linearGradient>
+    <linearGradient id="gHeart" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a7a"/><stop offset=".55" stop-color="#e5162f"/><stop offset="1" stop-color="#a80019"/>
+    </linearGradient>
+    <linearGradient id="gStar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe26b"/><stop offset=".55" stop-color="#f5b400"/><stop offset="1" stop-color="#c88400"/>
+    </linearGradient>
+    <linearGradient id="gFire" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb84d"/><stop offset=".5" stop-color="#ff7a00"/><stop offset="1" stop-color="#e03400"/>
+    </linearGradient>
+    <linearGradient id="gFireIn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0a0"/><stop offset="1" stop-color="#ffa51f"/>
+    </linearGradient>
+  </defs>
+
+  <symbol id="b-crown" viewBox="0 0 24 24">
+    <path d="M2.5 8.2l4.6 4.1L12 4.8l4.9 7.5 4.6-4.1-1.9 11.2H4.4L2.5 8.2z" fill="url(#gCrown)" stroke="#b57d00" stroke-width="1" stroke-linejoin="round"/>
+    <circle cx="2.8" cy="7.4" r="1.6" fill="url(#gCrown)" stroke="#b57d00" stroke-width=".8"/>
+    <circle cx="12" cy="3.9" r="1.7" fill="url(#gCrown)" stroke="#b57d00" stroke-width=".8"/>
+    <circle cx="21.2" cy="7.4" r="1.6" fill="url(#gCrown)" stroke="#b57d00" stroke-width=".8"/>
+    <rect x="5" y="16.4" width="14" height="1.6" rx=".8" fill="#fff" opacity=".35"/>
+  </symbol>
+
+  <symbol id="b-heart" viewBox="0 0 24 24">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#gHeart)" stroke="#8c0015" stroke-width=".8" stroke-linejoin="round"/>
+    <ellipse cx="7.3" cy="7.6" rx="2.3" ry="1.3" transform="rotate(-35 7.3 7.6)" fill="#fff" opacity=".4"/>
+  </symbol>
+
+  <symbol id="b-star" viewBox="0 0 24 24">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="url(#gStar)" stroke="#b07600" stroke-width="1" stroke-linejoin="round"/>
+    <path d="M12 4.6l1.9 3.9-1.9.6-1.9-.6z" fill="#fff" opacity=".35"/>
+  </symbol>
+
+  <symbol id="b-fire" viewBox="0 0 24 24">
+    <path d="M12 2.2C12.6 5.3 11 7 9.4 9C7.8 10.8 6 12.9 6 15.6C6 19 8.7 21.8 12 21.8C15.3 21.8 18 19 18 15.6C18 13.3 17 11.6 15.7 10.2C15.5 11.5 14.9 12.4 14 13C14.5 9.4 13.7 5.4 12 2.2Z" fill="url(#gFire)" stroke="#c23000" stroke-width=".7" stroke-linejoin="round"/>
+    <path d="M12 21.8C10.2 21.8 8.7 20.3 8.7 18.4C8.7 16.7 9.8 15.7 10.7 14.7C11.1 15.7 11.7 16.1 12.3 16.3C12.5 15.4 13 14.7 13.5 14.1C14.4 15.1 15.3 16.2 15.3 18.4C15.3 20.3 13.8 21.8 12 21.8Z" fill="url(#gFireIn)"/>
+  </symbol>
+</svg>`;
+document.body.insertAdjacentHTML("afterbegin", SPRITE);
+
+function iconSvg(key) {
+  return `<svg class="bicon" viewBox="0 0 24 24"><use href="#b-${key}"/></svg>`;
+}
+function sortBadges(list) {
+  const set = new Set(list || []);
+  return BADGES.map(b => b.key).filter(k => set.has(k));
+}
+
+/* ---------- Tooltip (hover on PC, tap on phone/tablet) ---------- */
+const tip = document.createElement("div");
+tip.className = "tip";
+document.body.append(tip);
+let tipEl = null;
+const canHover = window.matchMedia("(hover: hover)").matches;
+
+function showTip(el, text) {
+  tip.textContent = text;
+  tip.classList.add("show");
+  tipEl = el;
+  const r = el.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(6, Math.min(left, window.innerWidth - tw - 6));
+  let top = r.top - th - 8;
+  if (top < 6) top = r.bottom + 8;
+  tip.style.left = left + "px";
+  tip.style.top = top + "px";
+}
+function hideTip() { tip.classList.remove("show"); tipEl = null; }
+function attachTip(el, text) {
+  el.tabIndex = 0;
+  el.setAttribute("aria-label", text);
+  el.addEventListener("mouseenter", () => { if (canHover) showTip(el, text); });
+  el.addEventListener("mouseleave", hideTip);
+  el.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (canHover) showTip(el, text);
+    else if (tipEl === el) hideTip();
+    else showTip(el, text);
+  });
+}
+document.addEventListener("click", hideTip);
+window.addEventListener("scroll", hideTip, true);
+
 const $ = (id) => document.getElementById(id);
 let players = [];
 let adminPassword = "";
@@ -36,6 +135,7 @@ function tagFor(p) {
 }
 
 function render() {
+  hideTip();
   const q = $("search").value.trim().toLowerCase();
   const shown = players.filter(p =>
     p.display_name.toLowerCase().includes(q) ||
@@ -54,12 +154,28 @@ function render() {
       ["Perfect Predictions", p.perfect_predictions], ["Imperfect Predictions", p.imperfect_predictions],
       ["Gross Elo Earned", p.gross_elo_earned], ["Gross Elo Lost", p.gross_elo_lost],
       ["Career Points", p.career_points],
-      ["Highest Single-Game Points:", p.highest_single_game_points ?? 0],
+      ["Highest Single-Game Points", p.highest_single_game_points ?? 0],
     ];
     const av = document.createElement("div"); av.className = "avatar"; av.textContent = (p.display_name[0] || "?").toUpperCase();
+
+    const nameRow = document.createElement("div"); nameRow.className = "name-row";
     const nm = document.createElement("div"); nm.className = "name"; nm.textContent = p.display_name;
+    nameRow.append(nm);
+
+    const owned = sortBadges(p.badges);
+    if (owned.length) {
+      const box = document.createElement("div"); box.className = "badges";
+      for (const key of owned) {
+        const b = document.createElement("span"); b.className = "badge";
+        b.innerHTML = iconSvg(key);
+        attachTip(b, BADGE_NAME[key]);
+        box.append(b);
+      }
+      nameRow.append(box);
+    }
+
     const us = document.createElement("div"); us.className = "user"; us.textContent = tagFor(p);
-    card.append(av, nm, us);
+    card.append(av, nameRow, us);
     for (const [k, v] of rows) {
       const r = document.createElement("div"); r.className = "stat";
       const a = document.createElement("span"); a.textContent = k;
@@ -89,10 +205,83 @@ $("pwOk").onclick = async () => {
   openForm();
 };
 
+/* ---------- Badge picker (top of Update Info) ---------- */
+let selectedBadges = [];
+let pickerOpen = false;
+let badgesTouched = false;   // true once you click a badge yourself
+let syncedId = null;         // the existing ID whose badges were auto-loaded
+
+function renderPicker() {
+  const wrap = $("badgePicker");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  const lab = document.createElement("label"); lab.textContent = "Badges:";
+  wrap.append(lab);
+
+  if (!pickerOpen) {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "badge-open";
+    const txt = document.createElement("span");
+    txt.textContent = selectedBadges.length ? "Edit badges" : "Add badges";
+    btn.append(txt);
+    if (selectedBadges.length) {
+      const prev = document.createElement("span"); prev.className = "badges";
+      prev.innerHTML = selectedBadges.map(k => `<span class="badge">${iconSvg(k)}</span>`).join("");
+      btn.append(prev);
+    }
+    btn.onclick = () => { pickerOpen = true; renderPicker(); };
+    wrap.append(btn);
+    return;
+  }
+
+  const tray = document.createElement("div"); tray.className = "badge-tray";
+  for (const b of BADGES) {
+    const on = selectedBadges.includes(b.key);
+    const pick = document.createElement("div");
+    pick.className = "pick" + (on ? " on" : "");
+    pick.innerHTML = iconSvg(b.key);
+    const nm = document.createElement("span"); nm.textContent = b.name;
+    pick.append(nm);
+    if (on) {
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "x"; x.textContent = "×";
+      x.setAttribute("aria-label", "Remove " + b.name);
+      x.onclick = (e) => {
+        e.stopPropagation();
+        badgesTouched = true;
+        selectedBadges = selectedBadges.filter(k => k !== b.key);
+        renderPicker();
+      };
+      pick.append(x);
+    } else {
+      pick.onclick = () => {
+        badgesTouched = true;
+        selectedBadges = sortBadges([...selectedBadges, b.key]);
+        renderPicker();
+      };
+    }
+    tray.append(pick);
+  }
+  const done = document.createElement("button");
+  done.type = "button"; done.className = "btn secondary done";
+  done.textContent = "Done";
+  done.onclick = () => { pickerOpen = false; renderPicker(); };
+  tray.append(done);
+  wrap.append(tray);
+}
+
 /* ---------- Info popup ---------- */
 function openForm() {
   const box = $("formFields");
   box.innerHTML = "";
+
+  selectedBadges = []; pickerOpen = false; badgesTouched = false; syncedId = null;
+  const picker = document.createElement("div");
+  picker.className = "field badge-picker"; picker.id = "badgePicker";
+  box.append(picker);
+  renderPicker();
+
   for (const f of FIELDS) {
     const wrap = document.createElement("div"); wrap.className = "field";
     const lab = document.createElement("label"); lab.textContent = f.label + ":";
@@ -124,10 +313,22 @@ function validate() {
     el.classList.toggle("invalid", v !== "" && !good);
   }
   const id = $("f_id").value.trim();
-  const exists = players.some(p => p.id === id);
+  const existing = players.find(p => p.id === id);
+
+  // Load the existing player's badges into the picker (unless you already changed them)
+  if (existing && !badgesTouched && syncedId !== id) {
+    selectedBadges = sortBadges(existing.badges);
+    syncedId = id;
+    renderPicker();
+  } else if (!existing && syncedId !== null && !badgesTouched) {
+    selectedBadges = [];
+    syncedId = null;
+    renderPicker();
+  }
+
   $("formNote").textContent = id
-    ? (exists ? "This player exists: filled fields will update them, empty stats stay the same."
-              : "New player: a new profile will be created (empty stats start at 0).")
+    ? (existing ? "This player exists: filled fields will update them, empty stats stay the same."
+                : "New player: a new profile will be created (empty stats start at 0).")
     : "";
   $("saveBtn").disabled = !ok;
 }
@@ -150,6 +351,7 @@ $("saveBtn").onclick = async () => {
     p_elo_lost: n("elo_lost"),
     p_career_points: n("career_points"),
     p_highest: n("highest"),
+    p_badges: sortBadges(selectedBadges),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
