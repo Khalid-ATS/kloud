@@ -31,9 +31,9 @@ async function loadPlayers() {
 }
 
 function tagFor(p) {
-  // ID 1 becomes username#0001. Non-numeric IDs are shown as-is after the #.
+  // ID 1 becomes @username#0001. Non-numeric IDs are shown as-is after the #.
   const num = /^\d+$/.test(p.id) ? p.id.padStart(4, "0") : p.id;
-  return p.username + "#" + num;
+  return "@" + p.username + "#" + num;
 }
 
 function render() {
@@ -58,10 +58,9 @@ function render() {
       ["Highest Single-Game Points:", p.highest_single_game_points ?? 0],
     ];
     const av = document.createElement("div"); av.className = "avatar"; av.textContent = (p.display_name[0] || "?").toUpperCase();
-    const pid = document.createElement("div"); pid.className = "pid"; pid.textContent = tagFor(p);
     const nm = document.createElement("div"); nm.className = "name"; nm.textContent = p.display_name;
-    const us = document.createElement("div"); us.className = "user"; us.textContent = "@" + p.username;
-    card.append(av, pid, nm, us);
+    const us = document.createElement("div"); us.className = "user"; us.textContent = tagFor(p);
+    card.append(av, nm, us);
     for (const [k, v] of rows) {
       const r = document.createElement("div"); r.className = "stat";
       const a = document.createElement("span"); a.textContent = k;
