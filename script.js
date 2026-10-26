@@ -2,11 +2,12 @@ const SUPABASE_URL = "https://dtwjulokzfzkxngarrax.supabase.co";
 const SUPABASE_KEY = "sb_publishable_NnGoNuWIzw-LuN_Xebv8ag_TDBRNT8Y";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// type: text = plain text, delta = must be +number or -number, optnum = optional plain number
+// type: text = plain text, delta = +number or -number, num = plain number
+// required: true means it cannot be left empty
 const FIELDS = [
   { key: "display_name", label: "Display Name", type: "text" },
   { key: "username", label: "Username", type: "text" },
-  { key: "id", label: "ID", type: "text" },
+  { key: "id", label: "ID", type: "text", required: true },
   { key: "rounds_won", label: "Rounds Won", type: "delta" },
   { key: "rounds_lost", label: "Rounds Lost", type: "delta" },
   { key: "perfect", label: "Perfect Predictions", type: "delta" },
@@ -14,7 +15,7 @@ const FIELDS = [
   { key: "elo_earned", label: "Gross Elo Earned", type: "delta" },
   { key: "elo_lost", label: "Gross Elo Lost", type: "delta" },
   { key: "career_points", label: "Overall Career Points", type: "delta" },
-  { key: "highest", label: "Highest Single-Game Points (optional)", type: "optnum" },
+  { key: "highest", label: "Highest Single-Game Points", type: "num" },
 ];
 
 const $ = (id) => document.getElementById(id);
@@ -92,8 +93,10 @@ function openForm() {
     const lab = document.createElement("label"); lab.textContent = f.label + ":";
     const inp = document.createElement("input");
     inp.id = "f_" + f.key; inp.autocomplete = "off";
-    if (f.type === "delta") inp.placeholder = "+5 or -5";
-    if (f.type === "optnum") inp.placeholder = "e.g. 120 (can leave empty)";
+    if (f.type === "delta") inp.placeholder = "+5 or -5 (empty = no change)";
+    else if (f.type === "num") inp.placeholder = "e.g. 120 (empty = no change)";
+    else if (f.required) inp.placeholder = "Required";
+    else inp.placeholder = "Empty = no change";
     inp.addEventListener("input", validate);
     wrap.append(lab, inp); box.append(wrap);
   }
@@ -108,38 +111,41 @@ function validate() {
   for (const f of FIELDS) {
     const el = $("f_" + f.key); const v = el.value.trim();
     let good = true;
-    if (f.type === "text") good = v.length > 0;
-    else if (f.type === "delta") good = /^[+-]\d+$/.test(v);
-    else if (f.type === "optnum") good = v === "" || /^\d+$/.test(v);
+    if (f.required && v === "") { good = false; ok = false; }
+    else if (v !== "") {
+      if (f.type === "delta") good = /^[+-]\d+$/.test(v);
+      else if (f.type === "num") good = /^\d+$/.test(v);
+      if (!good) ok = false;
+    }
     el.classList.toggle("invalid", v !== "" && !good);
-    if (!good) ok = false;
   }
   const id = $("f_id").value.trim();
   const exists = players.some(p => p.id === id);
   $("formNote").textContent = id
-    ? (exists ? "ID exists: stats will be added/subtracted for this player."
-              : "New ID: a new player will be created.")
+    ? (exists ? "ID exists: filled fields will update this player, empty ones stay the same."
+              : "New ID: a new player will be created (empty fields start at 0 / use the ID).")
     : "";
   $("saveBtn").disabled = !ok;
 }
 
 $("saveBtn").onclick = async () => {
   const v = (k) => $("f_" + k).value.trim();
-  const hi = v("highest");
+  const n = (k) => (v(k) === "" ? null : parseInt(v(k), 10));
+  const t = (k) => (v(k) === "" ? null : v(k));
   $("saveBtn").disabled = true;
   const { error } = await db.rpc("upsert_player", {
     p_password: adminPassword,
     p_id: v("id"),
-    p_display_name: v("display_name"),
-    p_username: v("username"),
-    p_rounds_won: parseInt(v("rounds_won"), 10),
-    p_rounds_lost: parseInt(v("rounds_lost"), 10),
-    p_perfect: parseInt(v("perfect"), 10),
-    p_imperfect: parseInt(v("imperfect"), 10),
-    p_elo_earned: parseInt(v("elo_earned"), 10),
-    p_elo_lost: parseInt(v("elo_lost"), 10),
-    p_career_points: parseInt(v("career_points"), 10),
-    p_highest: hi === "" ? null : parseInt(hi, 10),
+    p_display_name: t("display_name"),
+    p_username: t("username"),
+    p_rounds_won: n("rounds_won"),
+    p_rounds_lost: n("rounds_lost"),
+    p_perfect: n("perfect"),
+    p_imperfect: n("imperfect"),
+    p_elo_earned: n("elo_earned"),
+    p_elo_lost: n("elo_lost"),
+    p_career_points: n("career_points"),
+    p_highest: n("highest"),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
