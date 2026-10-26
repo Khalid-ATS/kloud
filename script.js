@@ -206,8 +206,8 @@ $("pwOk").onclick = async () => {
 /* ---------- Badge picker (top of Update Info) ---------- */
 let selectedBadges = [];
 let pickerOpen = false;
-let badgesTouched = false;   // true once you click a badge yourself
-let syncedId = null;         // the existing ID whose badges were auto-loaded
+let badgesTouched = false;   // kept for the picker, no longer blocks auto-fill
+let syncedId = null;         // the existing ID whose info was auto-filled
 
 function renderPicker() {
   const wrap = $("badgePicker");
@@ -298,6 +298,27 @@ function openForm() {
 $("infoCancel").onclick = () => $("infoModal").classList.add("hidden");
 
 function validate() {
+  const id = $("f_id").value.trim();
+  const existing = players.find(p => p.id === id);
+
+  // Auto-fill display name, username and badges when the ID matches an existing player.
+  // This only happens when the ID changes, so anything you edit afterwards stays as you typed it.
+  if (existing && syncedId !== id) {
+    $("f_display_name").value = existing.display_name || "";
+    $("f_username").value = existing.username || "";
+    selectedBadges = sortBadges(existing.badges);
+    syncedId = id;
+    renderPicker();
+  } else if (!existing && syncedId !== null) {
+    // ID no longer matches anyone: clear what was auto-filled
+    $("f_display_name").value = "";
+    $("f_username").value = "";
+    selectedBadges = [];
+    syncedId = null;
+    renderPicker();
+  }
+
+  // Validate (after filling, so the required fields count as filled)
   let ok = true;
   for (const f of FIELDS) {
     const el = $("f_" + f.key); const v = el.value.trim();
@@ -309,19 +330,6 @@ function validate() {
       if (!good) ok = false;
     }
     el.classList.toggle("invalid", v !== "" && !good);
-  }
-  const id = $("f_id").value.trim();
-  const existing = players.find(p => p.id === id);
-
-  // Load the existing player's badges into the picker (unless you already changed them)
-  if (existing && !badgesTouched && syncedId !== id) {
-    selectedBadges = sortBadges(existing.badges);
-    syncedId = id;
-    renderPicker();
-  } else if (!existing && syncedId !== null && !badgesTouched) {
-    selectedBadges = [];
-    syncedId = null;
-    renderPicker();
   }
 
   $("formNote").textContent = id
