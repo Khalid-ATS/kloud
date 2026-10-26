@@ -2,32 +2,49 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Website</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111827;
-      color: white;
-      text-align: center;
-      padding: 80px 20px;
-    }
-
-    h1 {
-      color: #60a5fa;
-    }
-
-    button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player List</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Welcome to My Website</h1>
-  <p>I built this website using HTML, CSS, and JavaScript.</p>
-  <button onclick="alert('It works!')">Click Me</button>
+  <header>
+    <h1>Player List</h1>
+    <div class="toolbar">
+      <input id="search" type="text" placeholder="Search by name, username or ID...">
+      <button id="updateBtn" class="btn">Update Info</button>
+    </div>
+  </header>
+
+  <main id="list"></main>
+
+  <!-- Password popup -->
+  <div id="pwModal" class="overlay hidden">
+    <div class="modal small">
+      <h2>Enter Password</h2>
+      <input id="pwInput" type="password" placeholder="Password">
+      <p id="pwError" class="error"></p>
+      <div class="actions">
+        <button id="pwCancel" class="btn secondary">Cancel</button>
+        <button id="pwOk" class="btn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info popup -->
+  <div id="infoModal" class="overlay hidden">
+    <div class="modal">
+      <h2>Update Player</h2>
+      <div id="formFields"></div>
+      <p id="formNote" class="note"></p>
+      <p id="formError" class="error"></p>
+      <div class="actions">
+        <button id="infoCancel" class="btn secondary">Cancel</button>
+        <button id="saveBtn" class="btn" disabled>Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
