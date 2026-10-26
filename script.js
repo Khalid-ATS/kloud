@@ -30,12 +30,19 @@ async function loadPlayers() {
   render();
 }
 
+function tagFor(p) {
+  // ID 1 becomes username#0001. Non-numeric IDs are shown as-is after the #.
+  const num = /^\d+$/.test(p.id) ? p.id.padStart(4, "0") : p.id;
+  return p.username + "#" + num;
+}
+
 function render() {
   const q = $("search").value.trim().toLowerCase();
   const shown = players.filter(p =>
     p.display_name.toLowerCase().includes(q) ||
     p.username.toLowerCase().includes(q) ||
-    p.id.toLowerCase().includes(q));
+    p.id.toLowerCase().includes(q) ||
+    tagFor(p).toLowerCase().includes(q));
   const list = $("list");
   list.innerHTML = "";
   if (!shown.length) { list.innerHTML = `<div class="empty">No players found.</div>`; return; }
@@ -48,10 +55,10 @@ function render() {
       ["Perfect Predictions", p.perfect_predictions], ["Imperfect Predictions", p.imperfect_predictions],
       ["Gross Elo Earned", p.gross_elo_earned], ["Gross Elo Lost", p.gross_elo_lost],
       ["Career Points", p.career_points],
-      ["Highest Single-Game", p.highest_single_game_points ?? "—"],
+      ["Highest Single-Game Points:", p.highest_single_game_points ?? 0],
     ];
     const av = document.createElement("div"); av.className = "avatar"; av.textContent = (p.display_name[0] || "?").toUpperCase();
-    const pid = document.createElement("div"); pid.className = "pid"; pid.textContent = "ID: " + p.id;
+    const pid = document.createElement("div"); pid.className = "pid"; pid.textContent = tagFor(p);
     const nm = document.createElement("div"); nm.className = "name"; nm.textContent = p.display_name;
     const us = document.createElement("div"); us.className = "user"; us.textContent = "@" + p.username;
     card.append(av, pid, nm, us);
