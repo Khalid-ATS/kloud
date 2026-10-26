@@ -52,15 +52,22 @@ main {
 .stat span:first-child { color: var(--muted); }
 .empty { color: var(--muted); grid-column: 1 / -1; text-align: center; padding: 40px; }
 
-/* Badges */
-.bicon { width: 18px; height: 18px; display: block; }
-.badges {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--panel2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 3px 7px;
-}
-.badge { display: inline-flex; line-height: 0; cursor: pointer; border-radius: 4px; outline: none; }
+/* Badges: no shared box, each icon has its own colored square */
+.bicon { width: 16px; height: 16px; display: block; }
+.badges { display: inline-flex; align-items: center; gap: 6px; }
+.badge { display: inline-flex; line-height: 0; cursor: pointer; border-radius: 8px; outline: none; }
 .badge:focus-visible { outline: 2px solid var(--accent); }
+
+.bsq {
+  width: 26px; height: 26px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+.bsq-crown { background: rgba(255, 205, 40, .18); border-color: rgba(255, 205, 40, .5); }
+.bsq-heart { background: rgba(229, 22, 47, .18);  border-color: rgba(229, 22, 47, .5); }
+.bsq-star  { background: rgba(255, 165, 20, .18); border-color: rgba(255, 165, 20, .5); }
+.bsq-fire  { background: rgba(255, 59, 48, .18);  border-color: rgba(255, 59, 48, .5); }
 
 .tip {
   position: fixed; z-index: 50; left: 0; top: 0;
@@ -83,9 +90,9 @@ main {
   border-radius: 12px; padding: 10px;
 }
 .pick {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 8px;
   background: var(--panel); border: 1px solid var(--border);
-  border-radius: 10px; padding: 6px 8px; font-size: 13px;
+  border-radius: 10px; padding: 5px 8px 5px 5px; font-size: 13px;
   cursor: pointer; opacity: .5;
 }
 .pick:hover { opacity: .85; }
