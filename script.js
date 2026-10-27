@@ -2,8 +2,7 @@ const SUPABASE_URL = "https://dtwjulokzfzkxngarrax.supabase.co";
 const SUPABASE_KEY = "sb_publishable_NnGoNuWIzw-LuN_Xebv8ag_TDBRNT8Y";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// type: text = plain text, about = long text (optional),
-//       delta = +number or -number, count = plain number (optional + allowed)
+// type: text = plain text, about = long text (optional), delta = +number or -number
 // required: true means it cannot be left empty
 const FIELDS = [
   { key: "display_name", label: "Display Name", type: "text", required: true },
@@ -11,10 +10,10 @@ const FIELDS = [
   { key: "id", label: "ID", type: "text", required: true },
   { key: "about", label: "About Me", type: "about" },
   { key: "rounds", label: "Rounds", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
-  { key: "perfect", label: "Perfect Predictions", type: "count", hint: "e.g. 3 (optional)" },
-  { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "e.g. 2 (optional)" },
-  { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
-  { key: "points", label: "Points", type: "delta", hint: "+310 = win (gain Elo), -310 = loss (lose Elo)" },
+  { key: "games", label: "Games", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
+  { key: "predictions", label: "Predictions", type: "delta", hint: "+2 = perfect, -2 = imperfect (optional)" },
+  { key: "elo", label: "Elo", type: "delta", hint: "+25 = earned, -25 = lost (optional)" },
+  { key: "points", label: "Points", type: "delta" },
 ];
 
 const n0 = (x) => Number(x) || 0;
@@ -200,8 +199,6 @@ let adminPassword = "";
 
 /* ---------- Load + render ---------- */
 async function loadPlayers() {
-  // Apply any Elo calculations whose 1 minute wait is over, then load the list
-  await db.rpc("apply_due_elo");
   const { data, error } = await db.from("players").select("*").order("career_points", { ascending: false });
   if (error) { $("list").innerHTML = `<div class="empty">Could not load players.</div>`; console.error(error); return; }
   players = data;
@@ -336,6 +333,7 @@ function statSections(p) {
     ],
     Points: [
       ["Overall Career Points", ocp],
+      ["Average Points Per Round", rp === 0 ? 0 : round2(ocp / rp)],
       ["Average Points Per Game", gp === 0 ? 0 : round2(ocp / gp)],
       ["Highest Single-Game Points", n0(p.highest_single_game_points)],
     ],
@@ -551,20 +549,15 @@ function validate() {
     if (f.required && v === "") { good = false; ok = false; }
     else if (v !== "") {
       if (f.type === "delta") good = /^[+-]\d+$/.test(v);
-      else if (f.type === "count") good = /^\+?\d+$/.test(v);
       if (!good) ok = false;
     }
     el.classList.toggle("invalid", v !== "" && !good);
   }
 
-  let note = id
+  $("formNote").textContent = id
     ? (existing ? "This player exists: filled fields will update them, empty stats stay the same."
                 : "New player: a new profile will be created (empty stats start at 0).")
     : "";
-  if (id && $("f_points").value.trim() !== "") {
-    note += " Points count as one finished game, and the Elo change is applied 1 minute after saving.";
-  }
-  $("formNote").textContent = note;
   $("saveBtn").disabled = !ok;
 }
 
@@ -572,7 +565,6 @@ $("saveBtn").onclick = async () => {
   const v = (k) => $("f_" + k).value.trim();
   const n = (k) => (v(k) === "" ? null : parseInt(v(k), 10));
   const t = (k) => (v(k) === "" ? null : v(k));
-  const hadPoints = v("points") !== "";
   $("saveBtn").disabled = true;
   const { error } = await db.rpc("upsert_player", {
     p_password: adminPassword,
@@ -581,8 +573,8 @@ $("saveBtn").onclick = async () => {
     p_username: t("username"),
     p_about: v("about"),               // empty text clears the description
     p_rounds: n("rounds"),
-    p_perfect: n("perfect"),
-    p_imperfect: n("imperfect"),
+    p_games: n("games"),
+    p_predictions: n("predictions"),
     p_elo: n("elo"),
     p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
@@ -590,8 +582,6 @@ $("saveBtn").onclick = async () => {
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
   await loadPlayers();
-  // The Elo change lands 1 minute after saving, so refresh once it should be done
-  if (hadPoints) setTimeout(loadPlayers, 65000);
 };
 
 loadPlayers();
