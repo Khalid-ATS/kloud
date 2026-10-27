@@ -16,13 +16,15 @@ body {
 header { padding: 24px 20px 8px; max-width: 1100px; margin: 0 auto; }
 h1 { margin: 0 0 14px; }
 .toolbar { display: flex; gap: 10px; }
-input {
+input, textarea {
   background: var(--panel); color: var(--text);
   border: 1px solid var(--border); border-radius: 12px;
   padding: 11px 14px; font-size: 15px; width: 100%; outline: none;
+  font-family: inherit;
 }
-input:focus { border-color: var(--accent); }
-input.invalid { border-color: var(--danger); }
+textarea { resize: vertical; min-height: 70px; }
+input:focus, textarea:focus { border-color: var(--accent); }
+input.invalid, textarea.invalid { border-color: var(--danger); }
 .btn {
   background: #3a3a44; color: var(--text); border: none;
   border-radius: 12px; padding: 11px 18px; font-size: 15px;
@@ -74,10 +76,35 @@ main {
 .btn.view { width: 100%; font-weight: 700; text-align: center; }
 
 /* Profile popup */
+#profileModal .modal { max-width: 580px; }
 .p-head.big .avatar { width: 96px; height: 96px; font-size: 40px; }
-.stats { margin-top: 18px; }
-.stat { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--border); }
-.stat span:first-child { color: var(--muted); }
+
+.about { margin-top: 18px; }
+.about-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.about-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.about-text.none { color: var(--muted); font-style: italic; }
+
+/* Category tags: ovals */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.tab {
+  background: var(--panel2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.tab:hover { border-color: var(--accent); }
+.tab.on { background: #4a4a56; border-color: var(--accent); }
+
+/* Stats: rounded rectangles */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px; margin-top: 14px;
+}
+.stat-box {
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px;
+}
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.stat-value { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
 
 /* Badge picker in Update Info (icons only, in colored squares) */
 .badges { display: inline-flex; align-items: center; gap: 6px; }
