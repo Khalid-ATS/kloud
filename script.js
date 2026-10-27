@@ -11,10 +11,8 @@ const FIELDS = [
   { key: "about", label: "About Me", type: "about" },
   { key: "rounds", label: "Rounds", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
   { key: "games", label: "Games", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
-  { key: "perfect", label: "Perfect Predictions", type: "delta" },
-  { key: "imperfect", label: "Imperfect Predictions", type: "delta" },
-  { key: "elo_earned", label: "Gross Elo Earned", type: "delta" },
-  { key: "elo_lost", label: "Gross Elo Lost", type: "delta" },
+  { key: "predictions", label: "Predictions", type: "delta", hint: "+2 = perfect, -2 = imperfect (optional)" },
+  { key: "elo", label: "Elo", type: "delta", hint: "+25 = earned, -25 = lost (optional)" },
   { key: "points", label: "Points", type: "delta" },
 ];
 
@@ -175,12 +173,18 @@ function pctPair(won, lost) {
   if (total === 0) return "0% / 0%";
   return `${round1(won / total * 100)}% / ${round1(lost / total * 100)}%`;
 }
+// Adds a + sign to positive numbers
+function signed(x) {
+  const s = round2(x);
+  return x > 0 ? "+" + s : s;
+}
 
 function statSections(p) {
   const rw = n0(p.rounds_won), rl = n0(p.rounds_lost), rp = rw + rl;
   const gw = n0(p.games_won), gl = n0(p.games_lost), gp = gw + gl;
   const pp = n0(p.perfect_predictions), ip = n0(p.imperfect_predictions);
   const gee = n0(p.gross_elo_earned), gel = n0(p.gross_elo_lost);
+  const net = gee - gel;
   const ocp = n0(p.career_points);
 
   return {
@@ -214,8 +218,9 @@ function statSections(p) {
     Elo: [
       ["Gross Elo Earned", gee],
       ["Gross Elo Lost", gel],
-      ["Net Elo", gee - gel],
+      ["Net Elo", net],
       ["Peak Elo", n0(p.peak_elo)],
+      ["Average Elo Change Per Game", gp === 0 ? "0" : signed(net / gp)],
     ],
     Points: [
       ["Overall Career Points", ocp],
@@ -455,10 +460,8 @@ $("saveBtn").onclick = async () => {
     p_about: v("about"),               // empty text clears the description
     p_rounds: n("rounds"),
     p_games: n("games"),
-    p_perfect: n("perfect"),
-    p_imperfect: n("imperfect"),
-    p_elo_earned: n("elo_earned"),
-    p_elo_lost: n("elo_lost"),
+    p_predictions: n("predictions"),
+    p_elo: n("elo"),
     p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
   });
