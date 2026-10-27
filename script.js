@@ -2,20 +2,20 @@ const SUPABASE_URL = "https://dtwjulokzfzkxngarrax.supabase.co";
 const SUPABASE_KEY = "sb_publishable_NnGoNuWIzw-LuN_Xebv8ag_TDBRNT8Y";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// type: text = plain text, delta = +number or -number, num = plain number
+// type: text = plain text, about = long text (optional), delta = +number or -number
 // required: true means it cannot be left empty
 const FIELDS = [
   { key: "display_name", label: "Display Name", type: "text", required: true },
   { key: "username", label: "Username", type: "text", required: true },
   { key: "id", label: "ID", type: "text", required: true },
-  { key: "rounds_won", label: "Rounds Won", type: "delta" },
-  { key: "rounds_lost", label: "Rounds Lost", type: "delta" },
+  { key: "about", label: "About Me", type: "about" },
+  { key: "rounds", label: "Rounds", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
+  { key: "games", label: "Games", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
   { key: "perfect", label: "Perfect Predictions", type: "delta" },
   { key: "imperfect", label: "Imperfect Predictions", type: "delta" },
   { key: "elo_earned", label: "Gross Elo Earned", type: "delta" },
   { key: "elo_lost", label: "Gross Elo Lost", type: "delta" },
-  { key: "career_points", label: "Overall Career Points", type: "delta" },
-  { key: "highest", label: "Highest Single-Game Points", type: "delta" },
+  { key: "points", label: "Points", type: "delta" },
 ];
 
 /* ---------- Badges ---------- */
@@ -158,28 +158,121 @@ function render() {
 
 $("search").addEventListener("input", render);
 
-/* ---------- Profile popup (stats) ---------- */
-function openProfile(p) {
-  const rows = [
-    ["Rounds Won", p.rounds_won], ["Rounds Lost", p.rounds_lost],
-    ["Perfect Predictions", p.perfect_predictions], ["Imperfect Predictions", p.imperfect_predictions],
-    ["Gross Elo Earned", p.gross_elo_earned], ["Gross Elo Lost", p.gross_elo_lost],
-    ["Career Points", p.career_points],
-    ["Highest Single-Game Points", p.highest_single_game_points ?? 0],
-  ];
-  const body = $("profileBody");
-  body.innerHTML = "";
-  const head = makeHead(p); head.classList.add("big");
-  body.append(head);
+/* ---------- Stat calculations ---------- */
+const n0 = (x) => Number(x) || 0;
+const round2 = (x) => String(Math.round(x * 100) / 100);
+const round1 = (x) => String(Math.round(x * 10) / 10);
 
-  const stats = document.createElement("div"); stats.className = "stats";
-  for (const [k, v] of rows) {
-    const r = document.createElement("div"); r.className = "stat";
-    const a = document.createElement("span"); a.textContent = k;
-    const b = document.createElement("span"); b.textContent = v;
-    r.append(a, b); stats.append(r);
+// "2.5 Rounds Won for every 1 Round Lost"
+function ratioText(won, lost, wonWord, lostWord, noneText) {
+  if (won === 0 && lost === 0) return "N/A";
+  if (lost === 0) return noneText;
+  return `${round2(won / lost)} ${wonWord} for every 1 ${lostWord}`;
+}
+// "10% / 90%" (first = won, second = lost)
+function pctPair(won, lost) {
+  const total = won + lost;
+  if (total === 0) return "0% / 0%";
+  return `${round1(won / total * 100)}% / ${round1(lost / total * 100)}%`;
+}
+
+function statSections(p) {
+  const rw = n0(p.rounds_won), rl = n0(p.rounds_lost), rp = rw + rl;
+  const gw = n0(p.games_won), gl = n0(p.games_lost), gp = gw + gl;
+  const pp = n0(p.perfect_predictions), ip = n0(p.imperfect_predictions);
+  const gee = n0(p.gross_elo_earned), gel = n0(p.gross_elo_lost);
+  const ocp = n0(p.career_points);
+
+  return {
+    Rounds: [
+      ["Rounds Played", rp],
+      ["Rounds Won", rw],
+      ["Rounds Lost", rl],
+      ["Current Round Win Streak", n0(p.round_streak)],
+      ["Highest Round Win Streak", n0(p.round_best_streak)],
+      ["Round Win to Loss Ratio", ratioText(rw, rl, "Rounds Won", "Round Lost", "No rounds lost yet")],
+      ["Round Win to Loss Percentage", pctPair(rw, rl)],
+    ],
+    Games: [
+      ["Games Played", gp],
+      ["Games Won", gw],
+      ["Games Lost", gl],
+      ["Current Game Win Streak", n0(p.game_streak)],
+      ["Highest Game Win Streak", n0(p.game_best_streak)],
+      ["Game Win to Loss Ratio", ratioText(gw, gl, "Games Won", "Game Lost", "No games lost yet")],
+      ["Game Win to Loss Percentage", pctPair(gw, gl)],
+    ],
+    Predictions: [
+      ["Perfect Predictions", pp],
+      ["Imperfect Predictions", ip],
+      ["Predictions Made", pp + ip],
+      ["Current Perfect Prediction Streak", n0(p.perfect_streak)],
+      ["Highest Perfect Prediction Streak", n0(p.perfect_best_streak)],
+      ["Prediction Accuracy", (rp === 0 ? "0" : round1(pp / rp * 100)) + "%"],
+      ["Perfect to Imperfect Predictions Rate", ratioText(pp, ip, "Perfect", "Imperfect", "No imperfect predictions yet")],
+    ],
+    Elo: [
+      ["Gross Elo Earned", gee],
+      ["Gross Elo Lost", gel],
+      ["Net Elo", gee - gel],
+      ["Peak Elo", n0(p.peak_elo)],
+    ],
+    Points: [
+      ["Overall Career Points", ocp],
+      ["Average Points Per Round", rp === 0 ? 0 : round2(ocp / rp)],
+      ["Average Points Per Game", gp === 0 ? 0 : round2(ocp / gp)],
+      ["Highest Single-Game Points", n0(p.highest_single_game_points)],
+    ],
+  };
+}
+
+/* ---------- Profile popup ---------- */
+function openProfile(p) {
+  let activeTab = null;
+  const body = $("profileBody");
+  const sections = statSections(p);
+
+  function draw() {
+    body.innerHTML = "";
+
+    const head = makeHead(p); head.classList.add("big");
+    body.append(head);
+
+    // About Me
+    const about = document.createElement("div"); about.className = "about";
+    const title = document.createElement("div"); title.className = "about-title"; title.textContent = "About Me";
+    const text = document.createElement("div");
+    text.className = "about-text" + (p.about ? "" : " none");
+    text.textContent = p.about || "No description yet.";
+    about.append(title, text);
+    body.append(about);
+
+    // Category tags (ovals)
+    const tabs = document.createElement("div"); tabs.className = "tabs";
+    for (const name of Object.keys(sections)) {
+      const t = document.createElement("button");
+      t.type = "button";
+      t.className = "tab" + (activeTab === name ? " on" : "");
+      t.textContent = name;
+      t.onclick = () => { activeTab = activeTab === name ? null : name; draw(); };
+      tabs.append(t);
+    }
+    body.append(tabs);
+
+    // Stats for the chosen tag (rounded rectangles)
+    if (activeTab) {
+      const grid = document.createElement("div"); grid.className = "stat-grid";
+      for (const [label, value] of sections[activeTab]) {
+        const box = document.createElement("div"); box.className = "stat-box";
+        const l = document.createElement("div"); l.className = "stat-label"; l.textContent = label;
+        const v = document.createElement("div"); v.className = "stat-value"; v.textContent = value;
+        box.append(l, v); grid.append(box);
+      }
+      body.append(grid);
+    }
   }
-  body.append(stats);
+
+  draw();
   $("profileModal").classList.remove("hidden");
 }
 function closeProfile() { $("profileModal").classList.add("hidden"); }
@@ -284,11 +377,18 @@ function openForm() {
   for (const f of FIELDS) {
     const wrap = document.createElement("div"); wrap.className = "field";
     const lab = document.createElement("label"); lab.textContent = f.label + ":";
-    const inp = document.createElement("input");
+    let inp;
+    if (f.type === "about") {
+      inp = document.createElement("textarea");
+      inp.rows = 3; inp.maxLength = 300;
+      inp.placeholder = "Write something about this player (optional)";
+    } else {
+      inp = document.createElement("input");
+      if (f.required) inp.placeholder = "Required";
+      else if (f.hint) inp.placeholder = f.hint;
+      else if (f.type === "delta") inp.placeholder = "+5 or -5 (optional)";
+    }
     inp.id = "f_" + f.key; inp.autocomplete = "off";
-    if (f.required) inp.placeholder = "Required";
-    else if (f.type === "delta") inp.placeholder = "+5 or -5 (optional)";
-    else if (f.type === "num") inp.placeholder = "e.g. 120 (optional)";
     inp.addEventListener("input", validate);
     wrap.append(lab, inp); box.append(wrap);
   }
@@ -302,11 +402,12 @@ function validate() {
   const id = $("f_id").value.trim();
   const existing = players.find(p => p.id === id);
 
-  // Auto-fill display name, username and badges when the ID matches an existing player.
+  // Auto-fill display name, username, about me and badges when the ID matches an existing player.
   // This only happens when the ID changes, so anything you edit afterwards stays as you typed it.
   if (existing && syncedId !== id) {
     $("f_display_name").value = existing.display_name || "";
     $("f_username").value = existing.username || "";
+    $("f_about").value = existing.about || "";
     selectedBadges = sortBadges(existing.badges);
     syncedId = id;
     renderPicker();
@@ -314,6 +415,7 @@ function validate() {
     // ID no longer matches anyone: clear what was auto-filled
     $("f_display_name").value = "";
     $("f_username").value = "";
+    $("f_about").value = "";
     selectedBadges = [];
     syncedId = null;
     renderPicker();
@@ -322,12 +424,12 @@ function validate() {
   // Validate (after filling, so the required fields count as filled)
   let ok = true;
   for (const f of FIELDS) {
+    if (f.type === "about") continue;
     const el = $("f_" + f.key); const v = el.value.trim();
     let good = true;
     if (f.required && v === "") { good = false; ok = false; }
     else if (v !== "") {
       if (f.type === "delta") good = /^[+-]\d+$/.test(v);
-      else if (f.type === "num") good = /^\d+$/.test(v);
       if (!good) ok = false;
     }
     el.classList.toggle("invalid", v !== "" && !good);
@@ -350,14 +452,14 @@ $("saveBtn").onclick = async () => {
     p_id: v("id"),
     p_display_name: t("display_name"),
     p_username: t("username"),
-    p_rounds_won: n("rounds_won"),
-    p_rounds_lost: n("rounds_lost"),
+    p_about: v("about"),               // empty text clears the description
+    p_rounds: n("rounds"),
+    p_games: n("games"),
     p_perfect: n("perfect"),
     p_imperfect: n("imperfect"),
     p_elo_earned: n("elo_earned"),
     p_elo_lost: n("elo_lost"),
-    p_career_points: n("career_points"),
-    p_highest: n("highest"),
+    p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
