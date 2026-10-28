@@ -55,6 +55,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <script src="script.js"></script>
+  <!-- Order matters: each file can only use things from the files above it.
+       When you edit a file, change its ?v= number so browsers load the new copy. -->
+  <script src="config.js?v=1"></script>
+  <script src="badges.js?v=1"></script>
+  <script src="ranks.js?v=1"></script>
+  <script src="stats.js?v=1"></script>
+  <script src="profile.js?v=1"></script>
+  <script src="admin.js?v=1"></script>
+  <script src="main.js?v=1"></script>
 </body>
 </html>
