@@ -213,7 +213,7 @@ function tagFor(p) {
   return "@" + p.username + "#" + num;
 }
 
-// Circle profile picture. Uses p.avatar_url if you ever add that column, otherwise the first letter.
+// Circle profile picture. Uses the uploaded picture if there is one, otherwise the first letter.
 function makeAvatar(p) {
   const av = document.createElement("div");
   av.className = "avatar";
@@ -414,7 +414,88 @@ $("pwOk").onclick = async () => {
   openForm();
 };
 
-/* ---------- Badge picker (top of Update Info) ---------- */
+/* ---------- Profile picture field (top of Update Info) ---------- */
+let avatarValue = "";   // "" = default picture, otherwise a small image as a data URL
+
+// Shrinks the chosen image to a 256x256 square so it stays small
+function processImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That file is not a picture."));
+      img.onload = () => {
+        const S = 256;
+        const c = document.createElement("canvas");
+        c.width = S; c.height = S;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#232328"; ctx.fillRect(0, 0, S, S);
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+        resolve(c.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAvatarField() {
+  const wrap = $("avatarField");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  const lab = document.createElement("label"); lab.textContent = "Profile:";
+  wrap.append(lab);
+
+  const row = document.createElement("div"); row.className = "avatar-row";
+
+  const prev = document.createElement("div"); prev.className = "avatar small";
+  if (avatarValue) {
+    const img = document.createElement("img"); img.src = avatarValue; img.alt = "";
+    prev.append(img);
+  } else {
+    const name = ($("f_display_name") && $("f_display_name").value.trim()) || "";
+    prev.textContent = (name[0] || "?").toUpperCase();
+  }
+
+  const file = document.createElement("input");
+  file.type = "file"; file.accept = "image/*"; file.hidden = true;
+  file.onchange = async () => {
+    const f = file.files && file.files[0];
+    if (!f) return;
+    try {
+      avatarValue = await processImage(f);
+      $("formError").textContent = "";
+    } catch (err) {
+      $("formError").textContent = err.message;
+    }
+    renderAvatarField();
+  };
+
+  const up = document.createElement("button");
+  up.type = "button"; up.className = "btn secondary";
+  up.textContent = "Upload PFP";
+  up.onclick = () => file.click();
+
+  row.append(prev, up);
+
+  if (avatarValue) {
+    const rm = document.createElement("button");
+    rm.type = "button"; rm.className = "btn secondary";
+    rm.textContent = "Remove";
+    rm.onclick = () => { avatarValue = ""; renderAvatarField(); };
+    row.append(rm);
+  }
+
+  const hint = document.createElement("div"); hint.className = "note";
+  hint.textContent = avatarValue ? "Custom picture selected." : "Optional. Without one, the default letter picture is used.";
+  wrap.append(row, hint, file);
+}
+
+/* ---------- Badge picker (in Update Info, under Profile) ---------- */
 let selectedBadges = [];
 let pickerOpen = false;
 let badgesTouched = false;
@@ -490,6 +571,13 @@ function openForm() {
   box.innerHTML = "";
 
   selectedBadges = []; pickerOpen = false; badgesTouched = false; syncedId = null;
+  avatarValue = "";
+
+  const avField = document.createElement("div");
+  avField.className = "field"; avField.id = "avatarField";
+  box.append(avField);
+  renderAvatarField();
+
   const picker = document.createElement("div");
   picker.className = "field badge-picker"; picker.id = "badgePicker";
   box.append(picker);
@@ -523,12 +611,13 @@ function validate() {
   const id = $("f_id").value.trim();
   const existing = players.find(p => p.id === id);
 
-  // Auto-fill display name, username, about me and badges when the ID matches an existing player.
+  // Auto-fill display name, username, about me, picture and badges when the ID matches an existing player.
   // This only happens when the ID changes, so anything you edit afterwards stays as you typed it.
   if (existing && syncedId !== id) {
     $("f_display_name").value = existing.display_name || "";
     $("f_username").value = existing.username || "";
     $("f_about").value = existing.about || "";
+    avatarValue = existing.avatar_url || "";
     selectedBadges = sortBadges(existing.badges);
     syncedId = id;
     renderPicker();
@@ -537,10 +626,12 @@ function validate() {
     $("f_display_name").value = "";
     $("f_username").value = "";
     $("f_about").value = "";
+    avatarValue = "";
     selectedBadges = [];
     syncedId = null;
     renderPicker();
   }
+  renderAvatarField();
 
   // Validate (after filling, so the required fields count as filled)
   let ok = true;
@@ -586,6 +677,7 @@ $("saveBtn").onclick = async () => {
     p_elo: n("elo"),
     p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
+    p_avatar: avatarValue,             // empty text = default picture
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
