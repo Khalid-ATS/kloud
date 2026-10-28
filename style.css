@@ -207,3 +207,9 @@ main {
 .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 .error { color: var(--danger); font-size: 13px; min-height: 16px; margin: 8px 0 0; }
 .note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+
+/* Profile picture field in Update Info */
+.avatar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.avatar.small { width: 56px; height: 56px; font-size: 22px; }
+
+.avatar-row .btn { padding: 8px 14px; font-size: 14px; }
