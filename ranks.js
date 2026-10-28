@@ -1,68 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Player List</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header>
-    <h1>Player List</h1>
-    <div class="toolbar">
-      <input id="search" type="text" placeholder="Search by name, username or ID...">
-      <button id="updateBtn" class="btn">Update Info</button>
-    </div>
-  </header>
+/* ---------- Elo ranks (automatic) ---------- */
+const TIERS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Obsidian"];
+const ROMAN = ["I", "II", "III", "IV", "V"];
+const fmt = (x) => x.toLocaleString("en-US");
 
-  <main id="list"></main>
+// Rank comes from Net Elo (Gross Elo Earned - Gross Elo Lost). Below 0 counts as 0.
+function rankFor(p) {
+  const elo = Math.max(n0(p.gross_elo_earned) - n0(p.gross_elo_lost), 0);
+  const t = Math.min(Math.floor(elo / 1000), 5);
+  const d = Math.min(Math.floor((elo - t * 1000) / 200), 4);
+  const low = t * 1000 + d * 200;
+  const isTop = t === 5 && d === 4;
+  const range = isTop ? fmt(low) + "+" : fmt(low) + "–" + fmt(low + 199);
+  let extra = "";
+  if (d === 0 && t === 0) extra = " · Lowest Bronze";
+  else if (d === 0) extra = " · Lowest " + TIERS[t];
+  if (isTop) extra = " · Highest rank";
+  else if (d === 4) extra = " · Highest " + TIERS[t];
+  return { t, d, title: TIERS[t] + " " + ROMAN[d], info: "Rank by Elo: " + range + extra };
+}
 
-  <!-- Profile popup (opens from View Profile) -->
-  <div id="profileModal" class="overlay hidden">
-    <div class="modal">
-      <div id="profileBody"></div>
-      <div class="actions">
-        <button id="profileClose" class="btn secondary">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Password popup -->
-  <div id="pwModal" class="overlay hidden">
-    <div class="modal small">
-      <h2>Enter Password</h2>
-      <input id="pwInput" type="password" placeholder="Password">
-      <p id="pwError" class="error"></p>
-      <div class="actions">
-        <button id="pwCancel" class="btn secondary">Cancel</button>
-        <button id="pwOk" class="btn">Continue</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Info popup -->
-  <div id="infoModal" class="overlay hidden">
-    <div class="modal">
-      <h2>Update Player</h2>
-      <div id="formFields"></div>
-      <p id="formNote" class="note"></p>
-      <p id="formError" class="error"></p>
-      <div class="actions">
-        <button id="infoCancel" class="btn secondary">Cancel</button>
-        <button id="saveBtn" class="btn" disabled>Save</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <!-- Order matters: each file can only use things from the files above it.
-       When you edit a file, change its ?v= number so browsers load the new copy. -->
-  <script src="config.js?v=1"></script>
-  <script src="badges.js?v=1"></script>
-  <script src="ranks.js?v=1"></script>
-  <script src="stats.js?v=1"></script>
-  <script src="profile.js?v=1"></script>
-  <script src="admin.js?v=1"></script>
-  <script src="main.js?v=1"></script>
-</body>
-</html>
+function rankIcon(t, d) {
+  const textColor = (t === 1 || t === 2 || t === 3) ? "#23232a" : "#ffffff";
+  const size = d === 2 ? 9 : (d === 1 || d === 3) ? 10 : 12;
+  return `<svg class="bicon rank" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="url(#gR${t})"/><text x="12" y="16.2" text-anchor="middle" font-size="${size}" font-weight="800" font-family="system-ui,sans-serif" fill="${textColor}">${ROMAN[d]}</text></svg>`;
+}
+function rankChipHtml(p) {
+  const r = rankFor(p);
+  return `<span class="bchip bchip-r${r.t}" data-title="${r.title}" data-info="${r.info}">${rankIcon(r.t, r.d)}${r.title}</span>`;
+}
