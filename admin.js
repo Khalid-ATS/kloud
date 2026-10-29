@@ -1,5 +1,6 @@
 // type: text = plain text, about = long text (optional),
-//       delta = +number or -number, count = plain number (optional + allowed)
+//       delta = +number or -number, count = plain number (optional + allowed),
+//       mult = positive number, decimals allowed
 // required: true means it cannot be left empty
 const FIELDS = [
   { key: "display_name", label: "Display Name", type: "text", required: true },
@@ -11,6 +12,7 @@ const FIELDS = [
   { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "e.g. 2 (optional)" },
   { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
   { key: "points", label: "Points", type: "delta", hint: "+310 = win (gain Elo), -310 = loss (lose Elo)" },
+  { key: "multiplier", label: "Elo Multiplier", type: "mult", hint: "e.g. 2 = double the calculated Elo (optional)" },
 ];
 
 /* ---------- Password popup ---------- */
@@ -259,6 +261,7 @@ function validate() {
     else if (v !== "") {
       if (f.type === "delta") good = /^[+-]\d+$/.test(v);
       else if (f.type === "count") good = /^\+?\d+$/.test(v);
+      else if (f.type === "mult") good = /^\d+(\.\d+)?$/.test(v) && parseFloat(v) > 0;
       if (!good) ok = false;
     }
     el.classList.toggle("invalid", v !== "" && !good);
@@ -294,6 +297,7 @@ $("saveBtn").onclick = async () => {
     p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
     p_avatar: avatarValue,             // empty text = default picture
+    p_multiplier: v("multiplier") === "" ? null : parseFloat(v("multiplier")),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
