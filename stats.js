@@ -57,6 +57,7 @@ function statSections(p) {
       ["Perfect to Imperfect Predictions Rate", ratioText(pp, ip, "Perfect", "Imperfect", "No imperfect predictions yet")],
     ],
     Elo: [
+      ["Current Elo", net],
       ["Gross Elo Earned", gee],
       ["Gross Elo Lost", gel],
       ["Net Elo", net],
