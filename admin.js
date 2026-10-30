@@ -10,7 +10,9 @@ const FIELDS = [
   { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "This game's imperfect predictions, e.g. 2 (optional)" },
   { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
   { key: "points", label: "Points", type: "delta", hint: "+310 = game won, -310 = game lost (optional)" },
-  { key: "opp_elo", label: "Opponent Elo", type: "count", hint: "Used for the Elo calculation with Points (optional)" },
+  { key: "opp_elo", label: "Opponent 1 Elo", type: "count", hint: "Used for the Elo calculation with Points (optional)" },
+  { key: "opp_elo2", label: "Opponent 2 Elo", type: "count", hint: "Optional" },
+  { key: "opp_elo3", label: "Opponent 3 Elo", type: "count", hint: "Optional" },
 ];
 
 /* ---------- Password popup ---------- */
@@ -323,6 +325,8 @@ $("saveBtn").onclick = async () => {
     p_badges: sortBadges(selectedBadges),
     p_avatar: avatarValue,             // empty text = default picture
     p_opp_elo: n("opp_elo"),
+    p_opp_elo2: n("opp_elo2"),
+    p_opp_elo3: n("opp_elo3"),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
