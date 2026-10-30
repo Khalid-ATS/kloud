@@ -1,18 +1,15 @@
 // type: text = plain text, about = long text (optional),
-//       delta = +number or -number, count = plain number (optional + allowed),
-//       mult = positive number, decimals allowed
+//       delta = +number or -number, count = plain number (optional + allowed)
 // required: true means it cannot be left empty
 const FIELDS = [
   { key: "display_name", label: "Display Name", type: "text", required: true },
   { key: "username", label: "Username", type: "text", required: true },
   { key: "id", label: "ID", type: "text", required: true },
   { key: "about", label: "About Me", type: "about" },
-  { key: "rounds", label: "Rounds", type: "delta", hint: "+2 = won, -2 = lost (optional)" },
   { key: "perfect", label: "Perfect Predictions", type: "count", hint: "e.g. 3 (optional)" },
   { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "e.g. 2 (optional)" },
-  { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
-  { key: "points", label: "Points", type: "delta", hint: "+310 = win (gain Elo), -310 = loss (lose Elo)" },
-  { key: "multiplier", label: "Elo Multiplier", type: "mult", hint: "e.g. 2 = double the calculated Elo (optional)" },
+  { key: "elo", label: "Elo", type: "delta", hint: "+25 = earned, -25 = lost (optional)" },
+  { key: "points", label: "Points", type: "delta", hint: "+310 = game won, -310 = game lost (optional)" },
 ];
 
 /* ---------- Password popup ---------- */
@@ -291,7 +288,6 @@ function validate() {
     else if (v !== "") {
       if (f.type === "delta") good = /^[+-]\d+$/.test(v);
       else if (f.type === "count") good = /^\+?\d+$/.test(v);
-      else if (f.type === "mult") good = /^\d+(\.\d+)?$/.test(v) && parseFloat(v) > 0;
       if (!good) ok = false;
     }
     el.classList.toggle("invalid", v !== "" && !good);
@@ -302,7 +298,7 @@ function validate() {
                 : "New player: a new profile will be created (empty stats start at 0).")
     : "";
   if (id && $("f_points").value.trim() !== "") {
-    note += " Points count as one finished game, and the Elo change is applied 1 minute after saving.";
+    note += " Points count as one finished game.";
   }
   $("formNote").textContent = note;
   $("saveBtn").disabled = !ok;
@@ -312,7 +308,6 @@ $("saveBtn").onclick = async () => {
   const v = (k) => $("f_" + k).value.trim();
   const n = (k) => (v(k) === "" ? null : parseInt(v(k), 10));
   const t = (k) => (v(k) === "" ? null : v(k));
-  const hadPoints = v("points") !== "";
   $("saveBtn").disabled = true;
   const { error } = await db.rpc("upsert_player", {
     p_password: adminPassword,
@@ -320,18 +315,14 @@ $("saveBtn").onclick = async () => {
     p_display_name: t("display_name"),
     p_username: t("username"),
     p_about: v("about"),               // empty text clears the description
-    p_rounds: n("rounds"),
     p_perfect: n("perfect"),
     p_imperfect: n("imperfect"),
     p_elo: n("elo"),
     p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
     p_avatar: avatarValue,             // empty text = default picture
-    p_multiplier: v("multiplier") === "" ? null : parseFloat(v("multiplier")),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
   await loadPlayers();
-  // The Elo change lands 1 minute after saving, so refresh once it should be done
-  if (hadPoints) setTimeout(loadPlayers, 65000);
 };
