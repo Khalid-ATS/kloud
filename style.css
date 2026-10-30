@@ -213,3 +213,7 @@ main {
 .avatar.small { width: 56px; height: 56px; font-size: 22px; }
 
 .avatar-row .btn { padding: 8px 14px; font-size: 14px; }
+
+/* Delete button */
+.btn.danger { background: #5a2a2e; color: #ffb4b4; }
+.btn.danger:hover:not(:disabled) { background: #74343a; }
