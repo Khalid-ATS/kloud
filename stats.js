@@ -2,7 +2,7 @@
 const round2 = (x) => String(Math.round(x * 100) / 100);
 const round1 = (x) => String(Math.round(x * 10) / 10);
 
-// "2.5 Rounds Won for every 1 Round Lost"
+// "2.5 Games Won for every 1 Game Lost"
 function ratioText(won, lost, wonWord, lostWord, noneText) {
   if (won === 0 && lost === 0) return "N/A";
   if (lost === 0) return noneText;
@@ -21,7 +21,6 @@ function signed(x) {
 }
 
 function statSections(p) {
-  const rw = n0(p.rounds_won), rl = n0(p.rounds_lost), rp = rw + rl;
   const gw = n0(p.games_won), gl = n0(p.games_lost), gp = gw + gl;
   const pp = n0(p.perfect_predictions), ip = n0(p.imperfect_predictions);
   const gee = n0(p.gross_elo_earned), gel = n0(p.gross_elo_lost);
@@ -29,15 +28,6 @@ function statSections(p) {
   const ocp = n0(p.career_points);
 
   return {
-    Rounds: [
-      ["Rounds Played", rp],
-      ["Rounds Won", rw],
-      ["Rounds Lost", rl],
-      ["Current Round Win Streak", n0(p.round_streak)],
-      ["Highest Round Win Streak", n0(p.round_best_streak)],
-      ["Round Win to Loss Ratio", ratioText(rw, rl, "Rounds Won", "Round Lost", "No rounds lost yet")],
-      ["Round Win to Loss Percentage", pctPair(rw, rl)],
-    ],
     Games: [
       ["Games Played", gp],
       ["Games Won", gw],
@@ -53,7 +43,7 @@ function statSections(p) {
       ["Predictions Made", pp + ip],
       ["Current Perfect Prediction Streak", n0(p.perfect_streak)],
       ["Highest Perfect Prediction Streak", n0(p.perfect_best_streak)],
-      ["Prediction Accuracy", (rp === 0 ? "0" : round1(pp / rp * 100)) + "%"],
+      ["Prediction Accuracy", (pp + ip === 0 ? "0" : round1(pp / (pp + ip) * 100)) + "%"],
       ["Perfect to Imperfect Predictions Rate", ratioText(pp, ip, "Perfect", "Imperfect", "No imperfect predictions yet")],
     ],
     Elo: [
