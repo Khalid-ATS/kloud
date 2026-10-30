@@ -58,7 +58,7 @@ function render() {
   }
 }
 
-$("search").addEventListener("input", render);
+$("search").addEventListener("input", () => renderAll());
 
 /* ---------- Profile popup ---------- */
 function openProfile(p) {
