@@ -6,10 +6,11 @@ const FIELDS = [
   { key: "username", label: "Username", type: "text", required: true },
   { key: "id", label: "ID", type: "text", required: true },
   { key: "about", label: "About Me", type: "about" },
-  { key: "perfect", label: "Perfect Predictions", type: "count", hint: "e.g. 3 (optional)" },
-  { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "e.g. 2 (optional)" },
-  { key: "elo", label: "Elo", type: "delta", hint: "+25 = earned, -25 = lost (optional)" },
+  { key: "perfect", label: "Perfect Predictions", type: "count", hint: "This game's perfect predictions, e.g. 8 (optional)" },
+  { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "This game's imperfect predictions, e.g. 2 (optional)" },
+  { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
   { key: "points", label: "Points", type: "delta", hint: "+310 = game won, -310 = game lost (optional)" },
+  { key: "opp_elo", label: "Opponent Elo", type: "count", hint: "Used for the Elo calculation with Points (optional)" },
 ];
 
 /* ---------- Password popup ---------- */
@@ -298,7 +299,7 @@ function validate() {
                 : "New player: a new profile will be created (empty stats start at 0).")
     : "";
   if (id && $("f_points").value.trim() !== "") {
-    note += " Points count as one finished game.";
+    note += " Points count as one finished game, and the Elo change is calculated when you save.";
   }
   $("formNote").textContent = note;
   $("saveBtn").disabled = !ok;
@@ -321,6 +322,7 @@ $("saveBtn").onclick = async () => {
     p_points: n("points"),
     p_badges: sortBadges(selectedBadges),
     p_avatar: avatarValue,             // empty text = default picture
+    p_opp_elo: n("opp_elo"),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
