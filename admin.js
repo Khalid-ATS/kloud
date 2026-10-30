@@ -1,5 +1,6 @@
 // type: text = plain text, about = long text (optional),
-//       delta = +number or -number, count = plain number (optional + allowed)
+//       delta = +number or -number, count = plain number (optional + allowed),
+//       mult = positive number, decimals allowed
 // required: true means it cannot be left empty
 const FIELDS = [
   { key: "display_name", label: "Display Name", type: "text", required: true },
@@ -8,11 +9,12 @@ const FIELDS = [
   { key: "about", label: "About Me", type: "about" },
   { key: "perfect", label: "Perfect Predictions", type: "count", hint: "This game's perfect predictions, e.g. 8 (optional)" },
   { key: "imperfect", label: "Imperfect Predictions", type: "count", hint: "This game's imperfect predictions, e.g. 2 (optional)" },
-  { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
   { key: "points", label: "Points", type: "delta", hint: "+310 = game won, -310 = game lost (optional)" },
   { key: "opp_elo", label: "Opponent 1 Elo", type: "count", hint: "Used for the Elo calculation with Points (optional)" },
   { key: "opp_elo2", label: "Opponent 2 Elo", type: "count", hint: "Optional" },
   { key: "opp_elo3", label: "Opponent 3 Elo", type: "count", hint: "Optional" },
+  { key: "multiplier", label: "Elo Multiplier", type: "mult", hint: "e.g. 2 = double the gained Elo (optional)" },
+  { key: "elo", label: "Elo", type: "delta", hint: "Manual change: +25 earned, -25 lost (optional)" },
 ];
 
 /* ---------- Password popup ---------- */
@@ -291,6 +293,7 @@ function validate() {
     else if (v !== "") {
       if (f.type === "delta") good = /^[+-]\d+$/.test(v);
       else if (f.type === "count") good = /^\+?\d+$/.test(v);
+      else if (f.type === "mult") good = /^\d+(\.\d+)?$/.test(v) && parseFloat(v) > 0;
       if (!good) ok = false;
     }
     el.classList.toggle("invalid", v !== "" && !good);
@@ -327,6 +330,7 @@ $("saveBtn").onclick = async () => {
     p_opp_elo: n("opp_elo"),
     p_opp_elo2: n("opp_elo2"),
     p_opp_elo3: n("opp_elo3"),
+    p_multiplier: v("multiplier") === "" ? null : parseFloat(v("multiplier")),
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
   $("infoModal").classList.add("hidden");
