@@ -3,19 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Player List</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Cloud Players</title>
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
-  <header>
-    <h1>Player List</h1>
-    <div class="toolbar">
-      <input id="search" type="text" placeholder="Search by name, username or ID...">
-      <button id="updateBtn" class="btn">Update Info</button>
+  <nav class="topbar">
+    <div class="brand" aria-label="Cloud">
+      <svg viewBox="0 0 24 24" width="40" height="40">
+        <defs>
+          <linearGradient id="gBrand" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cfd6e4"/>
+          </linearGradient>
+        </defs>
+        <path d="M6.5 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.4 8.9a5 5 0 0 1 .1 10.1H6.5z" fill="url(#gBrand)"/>
+      </svg>
     </div>
-  </header>
+    <div class="nav-tabs">
+      <button class="nav-tab on" data-view="profiles">Player Profiles</button>
+      <button class="nav-tab" data-view="rankings">Player Rankings</button>
+    </div>
+    <input id="search" type="text" placeholder="Search by name, username or ID...">
+    <button id="updateBtn" class="btn">Update Info</button>
+  </nav>
 
+  <!-- Player Profiles (opens first) -->
   <main id="list"></main>
+
+  <!-- Player Rankings -->
+  <section id="rankings" class="page hidden">
+    <h2 class="page-title">Player Rankings</h2>
+
+    <div class="filters">
+      <div>
+        <span class="flabel">Gamemode</span>
+        <div class="seg">
+          <button type="button" class="on">Solo</button>
+          <button type="button" disabled title="Coming soon">Duos</button>
+          <button type="button" disabled title="Coming soon">Trios</button>
+        </div>
+      </div>
+      <div>
+        <span class="flabel">Tier</span>
+        <select id="tierSel"></select>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="brow head">
+        <div>#</div>
+        <div>IDs</div>
+        <div>Players</div>
+        <div>Elo</div>
+        <div>Games</div>
+        <div>Win Rate</div>
+        <div>Perfect Prediction Accuracy</div>
+        <div>Current Win Streak</div>
+      </div>
+      <div id="boardRows"></div>
+    </div>
+  </section>
 
   <!-- Profile popup (opens from View Profile) -->
   <div id="profileModal" class="overlay hidden">
@@ -61,8 +107,9 @@
   <script src="badges.js?v=1"></script>
   <script src="ranks.js?v=1"></script>
   <script src="stats.js?v=3"></script>
-  <script src="profile.js?v=1"></script>
+  <script src="profile.js?v=2"></script>
+  <script src="rankings.js?v=1"></script>
   <script src="admin.js?v=7"></script>
-  <script src="main.js?v=3"></script>
+  <script src="main.js?v=4"></script>
 </body>
 </html>
