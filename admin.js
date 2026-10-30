@@ -219,11 +219,38 @@ function openForm() {
     inp.addEventListener("input", validate);
     wrap.append(lab, inp); box.append(wrap);
   }
+
+  // Delete button (only shown when the ID matches an existing player)
+  const delWrap = document.createElement("div");
+  delWrap.className = "field hidden"; delWrap.id = "deleteRow";
+  const delBtn = document.createElement("button");
+  delBtn.type = "button"; delBtn.className = "btn danger"; delBtn.id = "deleteBtn";
+  delBtn.textContent = "Delete this player";
+  delBtn.onclick = deletePlayer;
+  const delNote = document.createElement("div"); delNote.className = "note";
+  delNote.textContent = "Permanently removes this player from the database and the website.";
+  delWrap.append(delBtn, delNote);
+  box.append(delWrap);
+
   $("formError").textContent = ""; $("formNote").textContent = "";
   $("saveBtn").disabled = true;
   $("infoModal").classList.remove("hidden");
 }
 $("infoCancel").onclick = () => $("infoModal").classList.add("hidden");
+
+async function deletePlayer() {
+  const id = $("f_id").value.trim();
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Delete ${p.display_name} (${tagFor(p)}) for good? This can't be undone.`)) return;
+
+  $("deleteBtn").disabled = true;
+  const { error } = await db.rpc("delete_player", { p_password: adminPassword, p_id: id });
+  $("deleteBtn").disabled = false;
+  if (error) { $("formError").textContent = "Delete failed: " + error.message; return; }
+  $("infoModal").classList.add("hidden");
+  await loadPlayers();
+}
 
 function validate() {
   const id = $("f_id").value.trim();
@@ -250,6 +277,9 @@ function validate() {
     renderPicker();
   }
   renderAvatarField();
+
+  // Show the delete button only for an existing player
+  $("deleteRow").classList.toggle("hidden", !existing);
 
   // Validate (after filling, so the required fields count as filled)
   let ok = true;
