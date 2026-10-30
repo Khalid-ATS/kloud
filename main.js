@@ -13,7 +13,7 @@ async function loadPlayers() {
   const { data, error } = await db.from("players").select("*");
   if (error) { $("list").innerHTML = `<div class="empty">Could not load players.</div>`; console.error(error); return; }
   players = data.sort(byId);
-  render();
+  renderAll();
 }
 
 loadPlayers();
