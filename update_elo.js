@@ -2,7 +2,20 @@
 const POS_BASE = { 1: 10, 2: 20, 3: 10, 4: 20 };
 const ZERO_MULT = { 1: 31, 2: 8, 3: 8, 4: 2 };
 const PERFECT_BONUS = 2.0;
-const IMPERFECT_PENALTY = 1.5;
+const IMPERFECT_PENALTY = 1.0;
+
+/* Placement vs Elo ("upsets") */
+const UPSET_WIN_RATE = 0.10;  // beating a higher-Elo player: +10% of the Elo gap, per player
+const UPSET_LOSS_RATE = 0.15; // losing to a lower-Elo player: -15% of the Elo gap, per player
+const UPSET_CAP = 150;        // max Elo swing from any single opponent
+
+/* Rank decay: higher rank = smaller gains (index 0 = Bronze I ... 29 = top rank) */
+const RANK_DECAY = 0.025;     // each rank removes 2.5% of gains
+const RANK_MIN_MULT = 0.25;   // gains never drop below x0.25
+
+/* TODO: replace the body with your real Elo -> rank logic from ranks.js.
+   Must return 0 for the lowest rank and 29 for the highest. */
+const rankIndexOf = (elo) => Math.min(29, Math.floor(elo / 100));
 
 const netOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
 const sgn = (x) => (x > 0 ? "+" : "") + x;
@@ -200,7 +213,20 @@ function recalcElo() {
     const perfBonus = perf * PERFECT_BONUS;
     const impPen = imp * IMPERFECT_PENALTY;
 
-    let total = base + perfBonus - impPen + adj;
+    // Placement vs Elo. Position 1 is best (lower number = better).
+    let upset = 0;
+    for (const o of others) {
+      const gap = Math.abs(o.elo - r.elo);
+      const beat = r.pos < o.pos;
+      if (beat && o.elo > r.elo) {
+        upset += Math.min(gap * UPSET_WIN_RATE, UPSET_CAP);   // beat a higher-Elo player
+      } else if (!beat && o.elo < r.elo) {
+        upset -= Math.min(gap * UPSET_LOSS_RATE, UPSET_CAP);  // lost to a lower-Elo player
+      }
+    }
+    upset = Math.round(upset);
+
+    let total = base + perfBonus - impPen + adj + upset;
 
     // Placement multiplier applies ONLY when current Elo is exactly 0.
     const zeroUsed = r.elo === 0 ? ZERO_MULT[r.pos] : null;
@@ -217,7 +243,13 @@ function recalcElo() {
     // Points multiplier: 310 points = x1.310, 90 points = x1.090
     const ptsMult = pointsMultOf(pts);
 
-    total *= streakMult * ptsMult * mult;
+    // Rank decay: higher rank = smaller gains (losses are unaffected).
+    const rankIdx = rankIndexOf(r.elo);
+    const rankMult = total > 0
+      ? Math.max(RANK_MIN_MULT, 1 - rankIdx * RANK_DECAY)
+      : 1;
+
+    total *= streakMult * ptsMult * rankMult * mult;
 
     let change = Math.round(total) || 0;
 
@@ -232,7 +264,8 @@ function recalcElo() {
       change > 0 ? "+" + change : change === 0 ? "+0" : String(change);
 
     $(`e${r.i}_why`).textContent =
-      `base ${sgn(base)} · predictions ${sgn(perfBonus - impPen)} · others ${sgn(adj)}` +
+      `base ${sgn(base)} · predictions ${sgn(perfBonus - impPen)} · others ${sgn(adj)} · upset ${sgn(upset)}` +
+      (rankMult !== 1 ? ` · ×${rankMult.toFixed(2)} (rank)` : "") +
       (zeroUsed !== null ? ` · ×${zeroUsed} (0 Elo)` : "") +
       (streakMult !== 1 ? ` · ×${streakMult} (game streak)` : "") +
       (pts > 0 ? ` · ×${ptsMult.toFixed(3)} (points)` : "") +
