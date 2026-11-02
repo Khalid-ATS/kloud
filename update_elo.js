@@ -1,7 +1,7 @@
 
 /* ---------- Elo numbers you may want to tweak ---------- */
 const POS_BASE = { 1: 10, 2: 20, 3: 10, 4: 20 };
-const ZERO_MULT = { 1: 20, 2: 8, 3: 8, 4: 2 };
+const ZERO_MULT = { 1: 31, 2: 8, 3: 8, 4: 2 };
 const PERFECT_BONUS = 2.0;
 const IMPERFECT_PENALTY = 1.0;
 
@@ -35,7 +35,7 @@ function makeSlot(i) {
     <div class="sh" id="e${i}_head"></div>
     <div class="field"><label>Perfect Predictions</label><input id="e${i}_perf" placeholder="0" inputmode="numeric" autocomplete="off"></div>
     <div class="field"><label>Imperfect Predictions</label><input id="e${i}_imp" placeholder="0" inputmode="numeric" autocomplete="off"></div>
-    <div class="field"><label>Points</label><input id="e${i}_pts" placeholder="+10 or -10" autocomplete="off"></div>
+    <div class="field"><label>Points</label><input id="e${i}_pts" placeholder="0" inputmode="numeric" autocomplete="off"></div>
     <div class="field"><label>Position</label>
       <select id="e${i}_pos">
         <option value="">Choose</option>
@@ -153,8 +153,8 @@ function recalcElo() {
     problem = "Each player can only be used once.";
   else if (filled.some(r => !/^\d{0,9}$/.test(r.perfV) || !/^\d{0,9}$/.test(r.impV)))
     problem = "Perfect and Imperfect Predictions must be plain numbers.";
-  else if (filled.some(r => !/^([+-]\d{1,9})?$/.test(r.ptsV)))
-    problem = "Points must start with + or - (like +10 or -10).";
+  else if (filled.some(r => !/^\d{0,9}$/.test(r.ptsV)))
+    problem = "Points must be a positive whole number.";
   else if (filled.some(r => r.posV === ""))
     problem = "Choose a position for every player.";
   else if (new Set(filled.map(r => r.posV)).size !== filled.length)
@@ -192,15 +192,15 @@ function recalcElo() {
 
     const perf = r.perfV === "" ? 0 : parseInt(r.perfV, 10);
     const imp = r.impV === "" ? 0 : parseInt(r.impV, 10);
+    const points = r.ptsV === "" ? 0 : parseInt(r.ptsV, 10);
 
     const base = POS_BASE[r.pos];
     const perfBonus = perf * PERFECT_BONUS;
     const impPen = imp * IMPERFECT_PENALTY;
 
-    // Points do not contribute to Elo.
     let total = base + perfBonus - impPen + adj;
 
-    // Placement multiplier applies ONLY when current Elo is exactly 0.
+    // Placement multiplier ONLY applies when current Elo is 0.
     const zeroUsed = r.elo === 0 ? ZERO_MULT[r.pos] : null;
 
     if (zeroUsed !== null) {
@@ -213,6 +213,10 @@ function recalcElo() {
     const streakMult = streak > 0 ? streak * 2 : 1;
 
     total *= streakMult * mult;
+
+    // Points multiplier: 310 points = x1.310.
+    const pointsMult = 1 + (points / 1000);
+    total *= pointsMult;
 
     let change = Math.round(total) || 0;
 
@@ -230,7 +234,8 @@ function recalcElo() {
       `base ${sgn(base)} · predictions ${sgn(perfBonus - impPen)} · others ${sgn(adj)}` +
       (zeroUsed !== null ? ` · ×${zeroUsed} (0 Elo)` : "") +
       (streakMult !== 1 ? ` · ×${streakMult} (game streak)` : "") +
-      (mult !== 1 ? ` · ×${mult} (manual)` : "");
+      (mult !== 1 ? ` · ×${mult} (manual)` : "") +
+      ` · ×${pointsMult.toFixed(3)} (points)`;
   }
 
   eloResult = filled.map(r => ({
@@ -238,7 +243,7 @@ function recalcElo() {
     position: r.pos,
     perfect: r.perfV === "" ? 0 : parseInt(r.perfV, 10),
     imperfect: r.impV === "" ? 0 : parseInt(r.impV, 10),
-    points: r.ptsV === "" ? 0 : Math.abs(parseInt(r.ptsV, 10)),
+    points: r.ptsV === "" ? 0 : parseInt(r.ptsV, 10),
     change: r.change,
   }));
 
