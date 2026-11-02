@@ -310,3 +310,48 @@ select:focus { border-color: var(--accent); }
 .avatar.tiny { width: 30px; height: 30px; font-size: 13px; }
 .ed-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .stat-box input { margin-top: 2px; padding: 8px 10px; font-size: 14px; }
+
+/* Update Info: profile-style editor */
+.pill-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.pill-btn::after { content: "\25BE"; color: var(--muted); }
+.pill-btn:hover { border-color: var(--accent); }
+.pill-list {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding: 10px;
+  max-height: 180px; overflow-y: auto;
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 16px;
+}
+.pill {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.pill:hover { border-color: var(--accent); background: #2c2c33; }
+.pill.on { background: #4a4a56; border-color: var(--accent); }
+.pill.new { font-weight: 700; }
+
+.ed-head { align-items: flex-start; }
+.ed-av { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ed-avbtns { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.ed-avbtns .btn { padding: 7px 12px; font-size: 13px; }
+.ed-name { font-size: 18px; font-weight: 700; padding: 8px 12px; }
+.ed-row { display: flex; align-items: center; gap: 4px; margin-top: 6px; color: var(--muted); }
+.ed-row input { padding: 6px 10px; font-size: 14px; }
+.ed-row .ed-id { width: 90px; flex: none; }
+.edchip { display: inline-flex; align-items: center; gap: 2px; }
+.edchip .xbtn {
+  width: 18px; height: 18px; border-radius: 50%; border: none; padding: 0;
+  background: #3a3a44; color: var(--text); font-size: 13px; line-height: 1; cursor: pointer;
+}
+.edchip .xbtn:hover { background: var(--danger); }
+.add-badge {
+  background: transparent; color: var(--muted); border: 1px dashed var(--border);
+  border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.add-badge:hover { color: var(--text); border-color: var(--accent); }
+#badgeTray { margin-top: 12px; }
+.about textarea { margin-top: 2px; }
+.ed-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.stat-box input { margin-top: 2px; padding: 8px 10px; font-size: 14px; }
