@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cloud Players</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <nav class="topbar">
@@ -23,7 +23,7 @@
       <button class="nav-tab" data-view="rankings">Player Rankings</button>
     </div>
     <input id="search" type="text" placeholder="Search by name, username or ID...">
-    <button id="updateBtn" class="btn">Update Info</button>
+    <button id="updateBtn" class="btn">Admin Panel</button>
   </nav>
 
   <!-- Player Profiles (opens first) -->
@@ -86,16 +86,49 @@
     </div>
   </div>
 
-  <!-- Info popup -->
+  <!-- Admin Panel menu -->
+  <div id="adminModal" class="overlay hidden">
+    <div class="modal small">
+      <h2>Admin Panel</h2>
+      <div class="admin-menu">
+        <button id="goElo" class="btn">Update Elo</button>
+        <button id="goInfo" class="btn">Update Info</button>
+      </div>
+      <div class="actions">
+        <button id="adminClose" class="btn secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Info popup -->
   <div id="infoModal" class="overlay hidden">
     <div class="modal">
-      <h2>Update Player</h2>
+      <h2>Update Info</h2>
       <div id="formFields"></div>
       <p id="formNote" class="note"></p>
       <p id="formError" class="error"></p>
       <div class="actions">
         <button id="infoCancel" class="btn secondary">Cancel</button>
         <button id="saveBtn" class="btn" disabled>Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Elo popup -->
+  <div id="eloModal" class="overlay hidden">
+    <div class="modal">
+      <h2>Update Elo</h2>
+      <div class="seg">
+        <button type="button" id="modeSolo">Solo</button>
+        <button type="button" disabled title="Coming soon">Duos</button>
+        <button type="button" disabled title="Coming soon">Trios</button>
+      </div>
+      <div id="eloBoard" class="hidden"></div>
+      <p id="eloMsg" class="note"></p>
+      <p id="eloError" class="error"></p>
+      <div class="actions">
+        <button id="eloCancel" class="btn secondary">Cancel</button>
+        <button id="eloSave" class="btn" disabled>Save</button>
       </div>
     </div>
   </div>
@@ -109,7 +142,9 @@
   <script src="stats.js?v=3"></script>
   <script src="profile.js?v=2"></script>
   <script src="rankings.js?v=1"></script>
-  <script src="admin.js?v=9"></script>
+  <script src="update_info.js?v=1"></script>
+  <script src="update_elo.js?v=1"></script>
+  <script src="admin.js?v=10"></script>
   <script src="main.js?v=4"></script>
 </body>
 </html>
