@@ -27,10 +27,11 @@ const NUM_KEYS = Object.values(NUM_SECTIONS).flat().map(x => x[0]);
 
 let avatarValue = "";      // "" = default picture, otherwise a small image as a data URL
 let selectedBadges = [];
-let pickerOpen = false;
+let pickerOpen = false;    // is the badge tray open?
 let chosen = false;        // has a player (or "None") been picked yet?
 let selectedId = null;     // null = new profile, otherwise the ID of the player being edited
 let ddOpen = false;        // is the player list open?
+let activeTab = null;      // which category is open
 
 /* ---------- Password popup ---------- */
 $("updateBtn").onclick = () => {
@@ -49,7 +50,7 @@ $("pwOk").onclick = async () => {
   openForm();
 };
 
-/* ---------- Profile picture field ---------- */
+/* ---------- Picture ---------- */
 // Shrinks the chosen image to a 256x256 square so it stays small
 function processImage(file) {
   return new Promise((resolve, reject) => {
@@ -75,83 +76,64 @@ function processImage(file) {
   });
 }
 
-function renderAvatarField() {
-  const wrap = $("avatarField");
-  if (!wrap) return;
-  wrap.innerHTML = "";
-
-  const lab = document.createElement("label"); lab.textContent = "Profile:";
-  wrap.append(lab);
-
-  const row = document.createElement("div"); row.className = "avatar-row";
-
-  const prev = document.createElement("div"); prev.className = "avatar small";
+function renderAvatarBox() {
+  const box = $("avatarBox");
+  if (!box) return;
+  box.innerHTML = "";
   if (avatarValue) {
     const img = document.createElement("img"); img.src = avatarValue; img.alt = "";
-    prev.append(img);
+    box.append(img);
   } else {
     const name = ($("f_display_name") && $("f_display_name").value.trim()) || "";
-    prev.textContent = (name[0] || "?").toUpperCase();
+    box.textContent = (name[0] || "?").toUpperCase();
   }
-
-  const file = document.createElement("input");
-  file.type = "file"; file.accept = "image/*"; file.hidden = true;
-  file.onchange = async () => {
-    const f = file.files && file.files[0];
-    if (!f) return;
-    try {
-      avatarValue = await processImage(f);
-      $("formError").textContent = "";
-    } catch (err) {
-      $("formError").textContent = err.message;
-    }
-    renderAvatarField();
-  };
-
-  const up = document.createElement("button");
-  up.type = "button"; up.className = "btn secondary";
-  up.textContent = "Upload PFP";
-  up.onclick = () => file.click();
-
-  row.append(prev, up);
-
-  if (avatarValue) {
-    const rm = document.createElement("button");
-    rm.type = "button"; rm.className = "btn secondary";
-    rm.textContent = "Remove";
-    rm.onclick = () => { avatarValue = ""; renderAvatarField(); };
-    row.append(rm);
-  }
-
-  const hint = document.createElement("div"); hint.className = "note";
-  hint.textContent = avatarValue ? "Custom picture selected." : "Optional. Without one, the default letter picture is used.";
-  wrap.append(row, hint, file);
+  const rm = $("removePfp");
+  if (rm) rm.disabled = !avatarValue;
 }
 
-/* ---------- Badge picker ---------- */
-function renderPicker() {
-  const wrap = $("badgePicker");
+/* ---------- Badges (same spot as on the profile) ---------- */
+// Elo rank + chosen badges as chips, each badge with a small x, then a "+ Badge" button
+function renderChips() {
+  const box = $("chipsBox");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const live = {
+    gross_elo_earned: n0($("f_gross_elo_earned").value),
+    gross_elo_lost: n0($("f_gross_elo_lost").value),
+  };
+  const rank = document.createElement("span");
+  rank.innerHTML = rankChipHtml(live);
+  box.append(rank.firstChild);
+
+  for (const k of selectedBadges) {
+    const w = document.createElement("span"); w.className = "edchip";
+    w.innerHTML = chipHtml(k);
+    const x = document.createElement("button");
+    x.type = "button"; x.className = "xbtn"; x.textContent = "×";
+    x.setAttribute("aria-label", "Remove " + BADGE_BY_KEY[k].name);
+    x.onclick = (e) => {
+      e.stopPropagation();
+      selectedBadges = selectedBadges.filter(b => b !== k);
+      renderChips(); renderTray();
+    };
+    w.append(x);
+    box.append(w);
+  }
+
+  const add = document.createElement("button");
+  add.type = "button"; add.className = "add-badge";
+  add.textContent = pickerOpen ? "Close" : "+ Badge";
+  add.onclick = () => { pickerOpen = !pickerOpen; renderChips(); renderTray(); };
+  box.append(add);
+}
+
+function renderTray() {
+  const wrap = $("badgeTray");
   if (!wrap) return;
   wrap.innerHTML = "";
-
-  const lab = document.createElement("label"); lab.textContent = "Badges:";
-  wrap.append(lab);
-
-  if (!pickerOpen) {
-    const btn = document.createElement("button");
-    btn.type = "button"; btn.className = "badge-open";
-    const txt = document.createElement("span");
-    txt.textContent = selectedBadges.length ? "Edit badges" : "Add badges";
-    btn.append(txt);
-    if (selectedBadges.length) {
-      const prev = document.createElement("span"); prev.className = "badges";
-      prev.innerHTML = selectedBadges.map(k => `<span class="badge">${iconSvg(k)}</span>`).join("");
-      btn.append(prev);
-    }
-    btn.onclick = () => { pickerOpen = true; renderPicker(); };
-    wrap.append(btn);
-    return;
-  }
+  wrap.classList.toggle("hidden", !pickerOpen);
+  if (!pickerOpen) return;
 
   const tray = document.createElement("div"); tray.className = "badge-tray";
   for (const b of BADGES) {
@@ -161,99 +143,62 @@ function renderPicker() {
     pick.innerHTML = iconSvg(b.key);
     const nm = document.createElement("span"); nm.textContent = b.name;
     pick.append(nm);
-    if (on) {
-      const x = document.createElement("button");
-      x.type = "button"; x.className = "x"; x.textContent = "×";
-      x.setAttribute("aria-label", "Remove " + b.name);
-      x.onclick = (e) => {
-        e.stopPropagation();
-        selectedBadges = selectedBadges.filter(k => k !== b.key);
-        renderPicker();
-      };
-      pick.append(x);
-    } else {
-      pick.onclick = () => {
-        selectedBadges = sortBadges([...selectedBadges, b.key]);
-        renderPicker();
-      };
-    }
+    pick.style.cursor = "pointer";
+    pick.onclick = () => {
+      selectedBadges = on
+        ? selectedBadges.filter(k => k !== b.key)
+        : sortBadges([...selectedBadges, b.key]);
+      renderChips(); renderTray();
+    };
     tray.append(pick);
   }
-  const done = document.createElement("button");
-  done.type = "button"; done.className = "btn secondary done";
-  done.textContent = "Done";
-  done.onclick = () => { pickerOpen = false; renderPicker(); };
-  tray.append(done);
   wrap.append(tray);
-
   const note = document.createElement("div"); note.className = "note";
-  note.textContent = "Elo rank badges (Bronze to Obsidian) are given automatically from Net Elo.";
+  note.textContent = "Click a badge to add or remove it. Elo rank badges (Bronze to Obsidian) are automatic.";
   wrap.append(note);
 }
 
-/* ---------- Player dropdown ---------- */
+/* ---------- Player chooser (small oval, display names only) ---------- */
 function renderPlayerPicker() {
   const wrap = $("playerPick");
   if (!wrap) return;
   wrap.innerHTML = "";
 
-  const lab = document.createElement("label"); lab.textContent = "Player:";
-  wrap.append(lab);
-
   const cur = selectedId === null ? null : players.find(x => x.id === selectedId);
   const btn = document.createElement("button");
-  btn.type = "button"; btn.className = "dd-btn";
-  btn.textContent = !chosen ? "Choose a player..."
-    : cur ? `${cur.display_name}  ${tagFor(cur)}` : "None (create a new profile)";
+  btn.type = "button"; btn.className = "pill-btn";
+  btn.textContent = !chosen ? "Choose a player" : cur ? cur.display_name : "None (new profile)";
   btn.onclick = (e) => { e.stopPropagation(); ddOpen = !ddOpen; renderPlayerPicker(); };
   wrap.append(btn);
 
   if (!ddOpen) return;
 
-  const list = document.createElement("div"); list.className = "dd-list";
-
-  const none = document.createElement("div");
-  none.className = "dd-item new";
-  none.textContent = "None (create a new profile)";
+  const list = document.createElement("div"); list.className = "pill-list";
+  const none = document.createElement("button");
+  none.type = "button"; none.className = "pill new"; none.textContent = "None";
   none.onclick = () => selectPlayer(null);
   list.append(none);
-
   for (const p of players) {
-    const it = document.createElement("div"); it.className = "dd-item";
-    const av = makeAvatar(p); av.classList.add("tiny");
-    const nm = document.createElement("span"); nm.textContent = p.display_name;
-    const sub = document.createElement("span"); sub.className = "dd-sub"; sub.textContent = tagFor(p);
-    it.append(av, nm, sub);
+    const it = document.createElement("button");
+    it.type = "button"; it.className = "pill" + (p.id === selectedId ? " on" : "");
+    it.textContent = p.display_name;
     it.onclick = () => selectPlayer(p.id);
     list.append(it);
   }
   wrap.append(list);
 }
 
-// Close the player list when you click anywhere else
+// Close the list when you click anywhere else
 document.addEventListener("click", (e) => {
   if (ddOpen && !e.target.closest("#playerPick")) { ddOpen = false; renderPlayerPicker(); }
 });
 
-/* ---------- Building the editor ---------- */
-function mkField(label, id, tag) {
-  const wrap = document.createElement("div"); wrap.className = "field";
-  const lab = document.createElement("label"); lab.textContent = label + ":";
-  const inp = document.createElement(tag || "input");
-  inp.id = id; inp.autocomplete = "off";
-  inp.addEventListener("input", () => {
-    if (id === "f_display_name" && !avatarValue) renderAvatarField();
-    validate();
-  });
-  wrap.append(lab, inp);
-  return { wrap, inp };
-}
-
+/* ---------- Building the editor (laid out like a profile) ---------- */
 function buildEditor() {
   const ed = document.createElement("div");
   ed.id = "editor"; ed.className = "hidden";
 
-  // Reset and Delete
+  // Reset / Delete
   const acts = document.createElement("div"); acts.className = "ed-actions";
   const resetBtn = document.createElement("button");
   resetBtn.type = "button"; resetBtn.className = "btn secondary"; resetBtn.id = "resetBtn";
@@ -265,38 +210,77 @@ function buildEditor() {
   acts.append(resetBtn, delBtn);
   ed.append(acts);
 
-  // Picture
-  const av = document.createElement("div"); av.className = "field"; av.id = "avatarField";
-  ed.append(av);
+  // Head: picture on the left (with Upload / Remove), info on the right
+  const head = document.createElement("div"); head.className = "p-head big ed-head";
 
-  // Text fields
-  const dn = mkField("Display Name", "f_display_name"); dn.inp.placeholder = "Required";
-  const un = mkField("Username", "f_username"); un.inp.placeholder = "Required";
-  const id = mkField("ID", "f_id"); id.inp.placeholder = "Required (you can change it)";
-  const ab = mkField("About Me", "f_about", "textarea");
-  ab.inp.rows = 3; ab.inp.maxLength = 300; ab.inp.placeholder = "Write something about this player (optional)";
-  ed.append(dn.wrap, un.wrap, id.wrap, ab.wrap);
-
-  // Badges
-  const bp = document.createElement("div"); bp.className = "field"; bp.id = "badgePicker";
-  ed.append(bp);
-
-  // Category tags with editable numbers
-  const tabs = document.createElement("div"); tabs.className = "tabs";
-  const grids = {}, tabBtns = {};
-  const showTab = (name) => {
-    for (const k of Object.keys(NUM_SECTIONS)) {
-      tabBtns[k].classList.toggle("on", k === name);
-      grids[k].classList.toggle("hidden", k !== name);
-    }
+  const left = document.createElement("div"); left.className = "ed-av";
+  const avBox = document.createElement("div"); avBox.className = "avatar"; avBox.id = "avatarBox";
+  const file = document.createElement("input");
+  file.type = "file"; file.accept = "image/*"; file.hidden = true;
+  file.onchange = async () => {
+    const f = file.files && file.files[0];
+    file.value = "";
+    if (!f) return;
+    try { avatarValue = await processImage(f); $("formError").textContent = ""; }
+    catch (err) { $("formError").textContent = err.message; }
+    renderAvatarBox();
   };
+  const up = document.createElement("button");
+  up.type = "button"; up.className = "btn secondary"; up.textContent = "Upload PFP";
+  up.onclick = () => file.click();
+  const rm = document.createElement("button");
+  rm.type = "button"; rm.className = "btn secondary"; rm.id = "removePfp"; rm.textContent = "Remove PFP";
+  rm.onclick = () => { avatarValue = ""; renderAvatarBox(); };
+  const btns = document.createElement("div"); btns.className = "ed-avbtns";
+  btns.append(up, rm);
+  left.append(avBox, btns, file);
+
+  const info = document.createElement("div"); info.className = "p-info";
+  const dn = document.createElement("input");
+  dn.id = "f_display_name"; dn.className = "ed-name"; dn.placeholder = "Display name";
+  dn.autocomplete = "off";
+  dn.addEventListener("input", () => { if (!avatarValue) renderAvatarBox(); validate(); });
+
+  const row = document.createElement("div"); row.className = "ed-row";
+  const at = document.createElement("span"); at.textContent = "@";
+  const un = document.createElement("input");
+  un.id = "f_username"; un.placeholder = "username"; un.autocomplete = "off";
+  un.addEventListener("input", validate);
+  const hash = document.createElement("span"); hash.textContent = "#";
+  const idi = document.createElement("input");
+  idi.id = "f_id"; idi.placeholder = "ID"; idi.autocomplete = "off"; idi.className = "ed-id";
+  idi.addEventListener("input", validate);
+  row.append(at, un, hash, idi);
+
+  const chips = document.createElement("div"); chips.className = "chips"; chips.id = "chipsBox";
+  info.append(dn, row, chips);
+  head.append(left, info);
+  ed.append(head);
+
+  const tray = document.createElement("div"); tray.id = "badgeTray"; tray.className = "hidden";
+  ed.append(tray);
+
+  // About Me
+  const about = document.createElement("div"); about.className = "about";
+  const at2 = document.createElement("div"); at2.className = "about-title"; at2.textContent = "About Me";
+  const ta = document.createElement("textarea");
+  ta.id = "f_about"; ta.rows = 3; ta.maxLength = 300;
+  ta.placeholder = "Write something about this player (optional)";
+  ta.addEventListener("input", validate);
+  about.append(at2, ta);
+  ed.append(about);
+
+  // Category tags + editable numbers
+  const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.id = "edTabs";
+  const grids = document.createElement("div"); grids.id = "edGrids";
   for (const [name, items] of Object.entries(NUM_SECTIONS)) {
     const t = document.createElement("button");
-    t.type = "button"; t.className = "tab"; t.textContent = name;
-    t.onclick = () => showTab(name);
-    tabs.append(t); tabBtns[name] = t;
+    t.type = "button"; t.className = "tab"; t.dataset.tab = name; t.textContent = name;
+    t.onclick = () => { activeTab = activeTab === name ? null : name; showTab(); };
+    tabs.append(t);
 
-    const grid = document.createElement("div"); grid.className = "stat-grid";
+    const grid = document.createElement("div");
+    grid.className = "stat-grid hidden"; grid.dataset.tab = name;
     for (const [key, label] of items) {
       const box = document.createElement("div"); box.className = "stat-box";
       const l = document.createElement("div"); l.className = "stat-label"; l.textContent = label;
@@ -305,27 +289,29 @@ function buildEditor() {
       inp.addEventListener("input", validate);
       box.append(l, inp); grid.append(box);
     }
-    grids[name] = grid;
-    ed.append; // (grids are added after the tabs below)
+    grids.append(grid);
   }
-  ed.append(tabs);
-  for (const g of Object.values(grids)) ed.append(g);
+  ed.append(tabs, grids);
+
   const calc = document.createElement("div"); calc.className = "note";
   calc.textContent = "Games Played, Current Elo, Net Elo, ratios and percentages are worked out automatically from these numbers.";
   ed.append(calc);
-  showTab("Games");
 
   return ed;
+}
+
+function showTab() {
+  document.querySelectorAll("#edTabs .tab").forEach(t => t.classList.toggle("on", t.dataset.tab === activeTab));
+  document.querySelectorAll("#edGrids .stat-grid").forEach(g => g.classList.toggle("hidden", g.dataset.tab !== activeTab));
 }
 
 /* ---------- Opening the popup ---------- */
 function openForm() {
   chosen = false; selectedId = null; ddOpen = false; pickerOpen = false;
-  avatarValue = ""; selectedBadges = [];
+  avatarValue = ""; selectedBadges = []; activeTab = null;
 
   const box = $("formFields");
   box.innerHTML = "";
-
   const pp = document.createElement("div"); pp.className = "field"; pp.id = "playerPick";
   box.append(pp);
   box.append(buildEditor());
@@ -347,9 +333,8 @@ function loadInto(p) {
   for (const k of NUM_KEYS) $("f_" + k).value = String(p ? n0(p[k]) : 0);
   avatarValue = p ? p.avatar_url || "" : "";
   selectedBadges = p ? sortBadges(p.badges) : [];
-  pickerOpen = false;
-  renderAvatarField();
-  renderPicker();
+  pickerOpen = false; activeTab = null;
+  renderAvatarBox(); renderChips(); renderTray(); showTab();
 }
 
 function selectPlayer(id) {
@@ -397,8 +382,7 @@ function validate() {
   let ok = true;
 
   for (const k of ["display_name", "username", "id"]) {
-    const el = $("f_" + k);
-    if (el.value.trim() === "") ok = false;
+    if ($("f_" + k).value.trim() === "") ok = false;
   }
 
   for (const k of NUM_KEYS) {
@@ -414,6 +398,8 @@ function validate() {
   $("f_id").classList.toggle("invalid", clash);
   $("formError").textContent = clash ? "That ID is already used by another player." : "";
   if (clash) ok = false;
+
+  renderChips();   // keeps the Elo rank chip in step with the Elo numbers
 
   $("formNote").textContent = selectedId === null
     ? "New profile: it will be created when you press Save."
