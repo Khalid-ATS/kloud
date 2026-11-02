@@ -3,20 +3,18 @@ const TIERS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Obsidian"];
 const ROMAN = ["I", "II", "III", "IV", "V"];
 const fmt = (x) => x.toLocaleString("en-US");
 
+// Every division is 100 Elo wide, 5 divisions per tier:
+// Bronze I 0-99, Bronze II 100-199 ... Bronze V 400-499, Silver I 500-599 ... Obsidian V 2,900+
 // Rank comes from Net Elo (Gross Elo Earned - Gross Elo Lost). Below 0 counts as 0.
 function rankFor(p) {
   const elo = Math.max(n0(p.gross_elo_earned) - n0(p.gross_elo_lost), 0);
-  const t = Math.min(Math.floor(elo / 1000), 5);
-  const d = Math.min(Math.floor((elo - t * 1000) / 200), 4);
-  const low = t * 1000 + d * 200;
-  const isTop = t === 5 && d === 4;
-  const range = isTop ? fmt(low) + "+" : fmt(low) + "–" + fmt(low + 199);
-  let extra = "";
-  if (d === 0 && t === 0) extra = " · Lowest Bronze";
-  else if (d === 0) extra = " · Lowest " + TIERS[t];
-  if (isTop) extra = " · Highest rank";
-  else if (d === 4) extra = " · Highest " + TIERS[t];
-  return { t, d, title: TIERS[t] + " " + ROMAN[d], info: "Rank by Elo: " + range + extra };
+  const step = Math.min(Math.floor(elo / 100), 29);   // 0 to 29 (30 divisions in total)
+  const t = Math.floor(step / 5);
+  const d = step % 5;
+  const low = step * 100;
+  const isTop = step === 29;
+  const range = isTop ? fmt(low) + "+" : fmt(low) + "-" + fmt(low + 99);
+  return { t, d, title: TIERS[t] + " " + ROMAN[d], info: "Rank by Elo: " + range };
 }
 
 function rankIcon(t, d) {
