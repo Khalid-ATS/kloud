@@ -1,9 +1,9 @@
 
 /* ---------- Elo numbers you may want to tweak ---------- */
-const POS_BASE = { 1: 10, 2: 20, 3: 30, 4: 40 };
-const ZERO_MULT = { 1: 14, 2: 10, 3: 6, 4: 2 };
-const PERFECT_BONUS = 1.5;
-const IMPERFECT_PENALTY = 1.5;
+const POS_BASE = { 1: 10, 2: 20, 3: 10, 4: 20 };
+const ZERO_MULT = { 1: 20, 2: 8, 3: 8, 4: 2 };
+const PERFECT_BONUS = 2.0;
+const IMPERFECT_PENALTY = 1.0;
 
 const netOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
 const sgn = (x) => (x > 0 ? "+" : "") + x;
