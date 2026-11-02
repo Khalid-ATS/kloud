@@ -1,6 +1,6 @@
 
 /* ---------- Elo numbers you may want to tweak ---------- */
-const POS_BASE = { 1: 20, 2: 10, 3: 0, 4: -20 };
+const POS_BASE = { 1: 40, 2: 30, 3: 20, 4: 10 };
 const ZERO_MULT = { 1: 8, 2: 6, 3: 4, 4: 2 };
 const PERFECT_BONUS = 1.5;
 const IMPERFECT_PENALTY = 1.5;
