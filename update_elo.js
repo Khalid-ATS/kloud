@@ -1,4 +1,3 @@
-
 /* ---------- Elo numbers you may want to tweak ---------- */
 const POS_BASE = { 1: 10, 2: 20, 3: 10, 4: 20 };
 const ZERO_MULT = { 1: 31, 2: 8, 3: 8, 4: 2 };
@@ -7,6 +6,9 @@ const IMPERFECT_PENALTY = 1.0;
 
 const netOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
 const sgn = (x) => (x > 0 ? "+" : "") + x;
+
+/* Points -> multiplier: 310 points => x1.310, 90 points => x1.090 */
+const pointsMultOf = (pts) => 1 + pts / 1000;
 
 /* ---------- Opening ---------- */
 function openElo() {
@@ -154,7 +156,7 @@ function recalcElo() {
   else if (filled.some(r => !/^\d{0,9}$/.test(r.perfV) || !/^\d{0,9}$/.test(r.impV)))
     problem = "Perfect and Imperfect Predictions must be plain numbers.";
   else if (filled.some(r => !/^\d{0,9}$/.test(r.ptsV)))
-    problem = "Points must be a positive whole number.";
+    problem = "Points must be a plain number (like 90).";
   else if (filled.some(r => r.posV === ""))
     problem = "Choose a position for every player.";
   else if (new Set(filled.map(r => r.posV)).size !== filled.length)
@@ -192,7 +194,7 @@ function recalcElo() {
 
     const perf = r.perfV === "" ? 0 : parseInt(r.perfV, 10);
     const imp = r.impV === "" ? 0 : parseInt(r.impV, 10);
-    const points = r.ptsV === "" ? 0 : parseInt(r.ptsV, 10);
+    const pts = r.ptsV === "" ? 0 : parseInt(r.ptsV, 10);
 
     const base = POS_BASE[r.pos];
     const perfBonus = perf * PERFECT_BONUS;
@@ -200,7 +202,7 @@ function recalcElo() {
 
     let total = base + perfBonus - impPen + adj;
 
-    // Placement multiplier ONLY applies when current Elo is 0.
+    // Placement multiplier applies ONLY when current Elo is exactly 0.
     const zeroUsed = r.elo === 0 ? ZERO_MULT[r.pos] : null;
 
     if (zeroUsed !== null) {
@@ -212,11 +214,10 @@ function recalcElo() {
     const streak = Math.max(0, n0(r.p.game_streak));
     const streakMult = streak > 0 ? streak * 2 : 1;
 
-    total *= streakMult * mult;
+    // Points multiplier: 310 points = x1.310, 90 points = x1.090
+    const ptsMult = pointsMultOf(pts);
 
-    // Points multiplier: 310 points = x1.310.
-    const pointsMult = 1 + (points / 1000);
-    total *= pointsMult;
+    total *= streakMult * ptsMult * mult;
 
     let change = Math.round(total) || 0;
 
@@ -234,8 +235,8 @@ function recalcElo() {
       `base ${sgn(base)} · predictions ${sgn(perfBonus - impPen)} · others ${sgn(adj)}` +
       (zeroUsed !== null ? ` · ×${zeroUsed} (0 Elo)` : "") +
       (streakMult !== 1 ? ` · ×${streakMult} (game streak)` : "") +
-      (mult !== 1 ? ` · ×${mult} (manual)` : "") +
-      ` · ×${pointsMult.toFixed(3)} (points)`;
+      (pts > 0 ? ` · ×${ptsMult.toFixed(3)} (points)` : "") +
+      (mult !== 1 ? ` · ×${mult} (manual)` : "");
   }
 
   eloResult = filled.map(r => ({
