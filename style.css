@@ -355,3 +355,35 @@ select:focus { border-color: var(--accent); }
 .about textarea { margin-top: 2px; }
 .ed-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .stat-box input { margin-top: 2px; padding: 8px 10px; font-size: 14px; }
+
+
+/* Admin Panel + Update Elo */
+.admin-menu { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+.admin-menu .btn { padding: 14px 18px; font-weight: 700; }
+#eloModal .modal { max-width: 1100px; }
+#eloBoard { margin-top: 18px; }
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 900px) { .slots { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .slots { grid-template-columns: 1fr; } }
+.slot {
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 16px;
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.slot .field { margin: 0; }
+.slot input, .slot select { padding: 8px 10px; font-size: 14px; }
+.slot select { width: 100%; min-width: 0; border-radius: 12px; }
+.slot .sh { display: flex; align-items: center; gap: 10px; min-height: 48px; }
+.slot .sh .avatar { width: 44px; height: 44px; font-size: 18px; }
+.slot .sn { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+.slot .su { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.slot .su.bad { color: var(--danger); }
+.calc {
+  margin-top: auto; border-radius: 12px; padding: 10px; text-align: center;
+  background: rgba(76, 208, 106, .12); border: 1px solid rgba(76, 208, 106, .45); color: #4cd06a;
+}
+.calc span { display: block; font-size: 22px; font-weight: 800; }
+.calc small { display: block; font-size: 11px; font-weight: 600; opacity: .85; }
+.mult-row { max-width: 260px; margin: 16px auto 0; text-align: center; }
+.mult-row label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.mult-row input { text-align: center; }
+#eloModal .seg button.on { background: #3a3a44; color: var(--text); }
