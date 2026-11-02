@@ -1,3 +1,4 @@
+
 /* ---------- Editable numbers, grouped like the profile tabs ---------- */
 // Everything else (Games Played, Current/Net Elo, ratios, percentages) is calculated automatically.
 const NUM_SECTIONS = {
@@ -10,8 +11,6 @@ const NUM_SECTIONS = {
   Predictions: [
     ["perfect_predictions", "Perfect Predictions"],
     ["imperfect_predictions", "Imperfect Predictions"],
-    ["perfect_streak", "Current Perfect Prediction Streak"],
-    ["perfect_best_streak", "Highest Perfect Prediction Streak"],
   ],
   Elo: [
     ["gross_elo_earned", "Gross Elo Earned"],
