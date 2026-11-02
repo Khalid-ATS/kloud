@@ -1,7 +1,9 @@
 /* ---------- Elo numbers you may want to tweak ---------- */
 const POS_BASE = { 1: 20, 2: 10, 3: 0, 4: -20 };   // base Elo for each finishing position
-const ZERO_MULT = { 1: 4, 2: 3, 3: 2, 4: 1 };      // extra multiplier for players who have 0 Elo
+const ZERO_MULT = { 1: 4, 2: 3, 3: 2, 4: 1 };      // multiplier for players who have 0 Elo
 const PERFECT_BONUS = 1.5;                         // Elo per perfect prediction
+const IMPERFECT_PENALTY = 0;                       // Elo removed per imperfect prediction (0 = no effect)
+const POINTS_WEIGHT = 1;                           // Elo per point: +10 points = +10 Elo, -10 points = -10 Elo
 
 const netOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
 const sgn = (x) => (x > 0 ? "+" : "") + x;
@@ -27,7 +29,8 @@ function makeSlot(i) {
     <div class="field"><label>ID</label><input id="e${i}_id" placeholder="Type an ID" autocomplete="off"></div>
     <div class="sh" id="e${i}_head"></div>
     <div class="field"><label>Perfect Predictions</label><input id="e${i}_perf" placeholder="0" inputmode="numeric" autocomplete="off"></div>
-    <div class="field"><label>Points</label><input id="e${i}_pts" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+    <div class="field"><label>Imperfect Predictions</label><input id="e${i}_imp" placeholder="0" inputmode="numeric" autocomplete="off"></div>
+    <div class="field"><label>Points</label><input id="e${i}_pts" placeholder="+10 or -10" autocomplete="off"></div>
     <div class="field"><label>Position</label>
       <select id="e${i}_pos"><option value="">Choose</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
     </div>
@@ -84,6 +87,7 @@ function recalcElo() {
     rows.push({
       i, id, p,
       perfV: $(`e${i}_perf`).value.trim(),
+      impV: $(`e${i}_imp`).value.trim(),
       ptsV: $(`e${i}_pts`).value.trim(),
       posV: $(`e${i}_pos`).value,
     });
@@ -98,7 +102,8 @@ function recalcElo() {
   else if (filled.length < 2) problem = "Fill in at least 2 players.";
   else if (filled.some(r => !r.p)) problem = "One of the IDs doesn't match a player.";
   else if (new Set(filled.map(r => r.id)).size !== filled.length) problem = "Each player can only be used once.";
-  else if (filled.some(r => !/^\d{0,9}$/.test(r.perfV) || !/^\d{0,9}$/.test(r.ptsV))) problem = "Perfect Predictions and Points must be plain numbers.";
+  else if (filled.some(r => !/^\d{0,9}$/.test(r.perfV) || !/^\d{0,9}$/.test(r.impV))) problem = "Perfect and Imperfect Predictions must be plain numbers.";
+  else if (filled.some(r => !/^([+-]\d{1,9})?$/.test(r.ptsV))) problem = "Points must start with + or - (like +10 or -10).";
   else if (filled.some(r => r.posV === "")) problem = "Choose a position for every player.";
   else if (new Set(filled.map(r => r.posV)).size !== filled.length) problem = "Each position can only be used once.";
 
@@ -123,11 +128,24 @@ function recalcElo() {
     // (higher Elos - lower Elos) / (2 x number of higher players), rounded up
     const adj = higher.length ? (Math.ceil((sum(higher) - sum(lower)) / (2 * higher.length)) || 0) : 0;
 
+    const perf = r.perfV === "" ? 0 : parseInt(r.perfV, 10);
+    const imp = r.impV === "" ? 0 : parseInt(r.impV, 10);
+    const ptsSigned = r.ptsV === "" ? 0 : parseInt(r.ptsV, 10);   // +10 adds, -10 subtracts
+
     const base = POS_BASE[r.pos];
-    const perfBonus = (r.perfV === "" ? 0 : parseInt(r.perfV, 10)) * PERFECT_BONUS;
-    let total = base + perfBonus + adj;
+    const perfBonus = perf * PERFECT_BONUS;
+    const impPen = imp * IMPERFECT_PENALTY;
+    const ptsElo = ptsSigned * POINTS_WEIGHT;
+    let total = base + perfBonus - impPen + ptsElo + adj;
+
+    // Players with 0 Elo: x4 / x3 / x2 / x1 by position.
+    // If the result is negative, the multiplier is negative too, so it turns into a gain (-30 x -2 = +60).
     const zero = r.elo === 0;
-    if (zero) total *= ZERO_MULT[r.pos];
+    let zeroUsed = null;
+    if (zero && total !== 0) {
+      zeroUsed = total < 0 ? -ZERO_MULT[r.pos] : ZERO_MULT[r.pos];
+      total *= zeroUsed;
+    }
     total *= mult;
 
     let change = Math.round(total) || 0;
@@ -136,15 +154,16 @@ function recalcElo() {
 
     $(`e${r.i}_calc`).textContent = change > 0 ? "+" + change : change === 0 ? "+0" : String(change);
     $(`e${r.i}_why`).textContent =
-      `base ${sgn(base)} · predictions ${sgn(perfBonus)} · others ${sgn(adj)}` +
-      (zero ? ` · ×${ZERO_MULT[r.pos]} (0 Elo)` : "") + (mult !== 1 ? ` · ×${mult}` : "");
+      `base ${sgn(base)} · predictions ${sgn(perfBonus - impPen)} · points ${sgn(ptsElo)} · others ${sgn(adj)}` +
+      (zeroUsed !== null ? ` · ×${zeroUsed} (0 Elo)` : "") + (mult !== 1 ? ` · ×${mult}` : "");
   }
 
   eloResult = filled.map(r => ({
     id: r.id,
     position: r.pos,
     perfect: r.perfV === "" ? 0 : parseInt(r.perfV, 10),
-    points: r.ptsV === "" ? 0 : parseInt(r.ptsV, 10),
+    imperfect: r.impV === "" ? 0 : parseInt(r.impV, 10),
+    points: r.ptsV === "" ? 0 : Math.abs(parseInt(r.ptsV, 10)),   // the number itself goes to career points
     change: r.change,
   }));
   $("eloMsg").textContent = "Check the Calculated Elo of each player, then press Save.";
