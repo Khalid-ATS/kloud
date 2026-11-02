@@ -13,9 +13,8 @@ const UPSET_CAP = 150;        // max Elo swing from any single opponent
 const RANK_DECAY = 0.025;     // each rank removes 2.5% of gains
 const RANK_MIN_MULT = 0.25;   // gains never drop below x0.25
 
-/* TODO: replace the body with your real Elo -> rank logic from ranks.js.
-   Must return 0 for the lowest rank and 29 for the highest. */
-const rankIndexOf = (elo) => Math.min(29, Math.floor(elo / 100));
+/* Same logic as rankFor() in ranks.js: 100 Elo per division, 0 = Bronze I ... 29 = Obsidian V (2,900+) */
+const rankIndexOf = (elo) => Math.min(Math.floor(Math.max(elo, 0) / 100), 29);
 
 const netOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
 const sgn = (x) => (x > 0 ? "+" : "") + x;
