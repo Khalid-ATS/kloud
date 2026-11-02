@@ -20,12 +20,13 @@ function signed(x) {
   return x > 0 ? "+" + s : s;
 }
 
-function statSections(p) {
-  const gw = n0(p.games_won), gl = n0(p.games_lost), gp = gw + gl;
-  const pp = n0(p.perfect_predictions), ip = n0(p.imperfect_predictions);
-  const gee = n0(p.gross_elo_earned), gel = n0(p.gross_elo_lost);
-  const net = gee - gel;
-  const ocp = n0(p.career_points);
+Predictions: [
+  ["Perfect Predictions", pp],
+  ["Imperfect Predictions", ip],
+  ["Predictions Made", pp + ip],
+  ["Prediction Accuracy", (pp + ip === 0 ? "0" : round1(pp / (pp + ip) * 100)) + "%"],
+  ["Perfect to Imperfect Predictions Rate", ratioText(pp, ip, "Perfect", "Imperfect", "No imperfect predictions yet")],
+],
 
   return {
     Games: [
