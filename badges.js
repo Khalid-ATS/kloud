@@ -5,9 +5,9 @@ const BADGES = [
   { key: "heart", name: "Co Founder", desc: "Cloud Co Creator" },
   { key: "star", name: "Grandmaster", desc: "Awarded to any Cloud Prodigy" },
   { key: "fire", name: "Streak Master", desc: "Very High Streak" },
-  { key: "veteran", name: "Veteran", desc: "Old Cloud Player" },
+  { key: "veteran", name: "Veteran", desc: "Loyal Cloud Player" },
   { key: "preseason", name: "Pre-Season Cloud Player", desc: "Cloud Player before Season 1" },
-  { key: "champion", name: "Cloud Champion", desc: "Awarded to a Cloud Champion" },
+  { key: "champion", name: "Cloud Champion", desc: "Awarded to the World Champion" },
 ];
 const BADGE_BY_KEY = Object.fromEntries(BADGES.map(b => [b.key, b]));
 
