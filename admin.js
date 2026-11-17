@@ -6,10 +6,24 @@ $("updateBtn").onclick = () => {
 $("pwCancel").onclick = () => $("pwModal").classList.add("hidden");
 $("pwInput").addEventListener("keydown", e => { if (e.key === "Enter") $("pwOk").click(); });
 
+// True when the request failed because of the connection (offline, server unreachable ...)
+const isNetworkError = (err) =>
+  !navigator.onLine ||
+  /failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test((err && err.message) || "");
+
 $("pwOk").onclick = async () => {
   const pw = $("pwInput").value;
   const { data, error } = await db.rpc("check_admin_password", { p: pw });
-  if (error || data !== true) { $("pwError").textContent = "Wrong password."; return; }
+
+  if (error) {
+    console.error(error);
+    $("pwError").textContent = isNetworkError(error)
+      ? "Network error. Check your connection and try again."
+      : "Could not check the password: " + error.message;
+    return;
+  }
+  if (data !== true) { $("pwError").textContent = "Wrong password."; return; }
+
   adminPassword = pw;
   $("pwModal").classList.add("hidden");
   $("adminModal").classList.remove("hidden");
