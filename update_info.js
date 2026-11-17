@@ -1,4 +1,3 @@
-
 /* ---------- Editable numbers, grouped like the profile tabs ---------- */
 // Everything else (Games Played, Current/Net Elo, ratios, percentages) is calculated automatically.
 const NUM_SECTIONS = {
@@ -31,6 +30,8 @@ let chosen = false;        // has a player (or "None") been picked yet?
 let selectedId = null;     // null = new profile, otherwise the ID of the player being edited
 let ddOpen = false;        // is the player list open?
 let activeTab = null;      // which category is open
+let editMode = "solo";     // which gamemode's numbers are shown in the boxes ("solo" or "duo")
+let statDraft = { solo: {}, duo: {} };   // what is typed in the number boxes, for each gamemode
 
 /* ---------- Picture ---------- */
 // Shrinks the chosen image to a 256x256 square so it stays small
@@ -273,7 +274,10 @@ function buildEditor() {
     }
     grids.append(grid);
   }
-  ed.append(tabs, grids);
+  const modeBar = document.createElement("div"); modeBar.className = "mode-bar";
+  const modeSeg = document.createElement("div"); modeSeg.className = "seg"; modeSeg.id = "editSeg";
+  modeBar.append(modeSeg);
+  ed.append(modeBar, tabs, grids);
 
   const calc = document.createElement("div"); calc.className = "note";
   calc.textContent = "Games Played, Current Elo, Net Elo, ratios and percentages are worked out automatically from these numbers.";
@@ -287,16 +291,40 @@ function showTab() {
   document.querySelectorAll("#edGrids .stat-grid").forEach(g => g.classList.toggle("hidden", g.dataset.tab !== activeTab));
 }
 
+/* ---------- Gamemode tabs (Solos | Duos | Trios) for the number boxes ---------- */
+// The number boxes show one gamemode at a time. What was typed for the other gamemode is kept in statDraft.
+function syncDraft() {                 // boxes -> draft
+  for (const k of NUM_KEYS) statDraft[editMode][k] = $("f_" + k).value;
+}
+function fillStatInputs() {            // draft -> boxes
+  for (const k of NUM_KEYS) $("f_" + k).value = statDraft[editMode][k] ?? "0";
+}
+function renderEditSeg() { buildModeSeg($("editSeg"), editMode, switchEditMode); }
+function updateResetLabel() {
+  $("resetBtn").textContent = selectedId === null ? "Clear form" : "Reset " + modeLabel(editMode) + " stats";
+}
+function switchEditMode(m) {
+  if (m === editMode) return;
+  syncDraft();
+  editMode = m;
+  fillStatInputs();
+  renderEditSeg();
+  updateResetLabel();
+  validate();
+}
+
 /* ---------- Opening the popup ---------- */
 function openForm() {
   chosen = false; selectedId = null; ddOpen = false; pickerOpen = false;
   avatarValue = ""; selectedBadges = []; activeTab = null;
+  editMode = "solo"; statDraft = { solo: {}, duo: {} };
 
   const box = $("formFields");
   box.innerHTML = "";
   const pp = document.createElement("div"); pp.className = "field"; pp.id = "playerPick";
   box.append(pp);
   box.append(buildEditor());
+  renderEditSeg();
   renderPlayerPicker();
 
   $("formError").textContent = "";
@@ -312,7 +340,9 @@ function loadInto(p) {
   $("f_username").value = p ? p.username || "" : "";
   $("f_id").value = p ? p.id : "";
   $("f_about").value = p ? p.about || "" : "";
-  for (const k of NUM_KEYS) $("f_" + k).value = String(p ? n0(p[k]) : 0);
+  for (const m of ["solo", "duo"])
+    for (const k of NUM_KEYS) statDraft[m][k] = String(p ? n0(p[statKey(m, k)]) : 0);
+  fillStatInputs();
   avatarValue = p ? p.avatar_url || "" : "";
   selectedBadges = p ? sortBadges(p.badges) : [];
   pickerOpen = false; activeTab = null;
@@ -325,7 +355,7 @@ function selectPlayer(id) {
   loadInto(p);
   renderPlayerPicker();
   $("editor").classList.remove("hidden");
-  $("resetBtn").textContent = id === null ? "Clear form" : "Reset stats";
+  updateResetLabel();
   $("deleteBtn").classList.toggle("hidden", id === null);
   $("formError").textContent = "";
   validate();
@@ -336,13 +366,16 @@ async function resetPlayer() {
   if (selectedId === null) { loadInto(null); validate(); return; }
   const p = players.find(x => x.id === selectedId);
   if (!p) return;
-  if (!confirm(`Reset all stats for ${p.display_name} (${tagFor(p)}) to 0? Anything you typed but did not save is lost.`)) return;
+  const label = modeLabel(editMode);
+  if (!confirm(`Reset all ${label} stats for ${p.display_name} (${tagFor(p)}) to 0? Anything you typed but did not save is lost.`)) return;
 
-  const { error } = await db.rpc("reset_player", { p_password: adminPassword, p_id: selectedId });
+  // Solos use the original function, Duos use the new one (see the SQL file)
+  const fn = editMode === "duo" ? "reset_player_duo" : "reset_player";
+  const { error } = await db.rpc(fn, { p_password: adminPassword, p_id: selectedId });
   if (error) { $("formError").textContent = "Reset failed: " + error.message; return; }
   await loadPlayers();
   selectPlayer(selectedId);
-  $("formNote").textContent = "Stats reset to 0.";
+  $("formNote").textContent = label + " stats reset to 0.";
 }
 
 async function deletePlayer() {
@@ -367,18 +400,24 @@ function validate() {
     if ($("f_" + k).value.trim() === "") ok = false;
   }
 
-  for (const k of NUM_KEYS) {
-    const el = $("f_" + k); const v = el.value.trim();
-    const good = v === "" || /^\d{1,9}$/.test(v);
-    el.classList.toggle("invalid", !good);
-    if (!good) ok = false;
+  // Check the numbers of BOTH gamemodes (the boxes only show one of them)
+  syncDraft();
+  let badOther = "";
+  for (const m of ["solo", "duo"]) {
+    for (const k of NUM_KEYS) {
+      const good = /^(\d{1,9})?$/.test(statDraft[m][k].trim());
+      if (m === editMode) $("f_" + k).classList.toggle("invalid", !good);
+      if (!good) { ok = false; if (m !== editMode) badOther = m; }
+    }
   }
 
   // The ID can't belong to somebody else
   const id = $("f_id").value.trim();
   const clash = id !== "" && id !== selectedId && players.some(p => p.id === id);
   $("f_id").classList.toggle("invalid", clash);
-  $("formError").textContent = clash ? "That ID is already used by another player." : "";
+  $("formError").textContent = clash
+    ? "That ID is already used by another player."
+    : badOther ? `Some ${modeLabel(badOther)} numbers are not valid. Open the ${modeLabel(badOther)} tab to fix them.` : "";
   if (clash) ok = false;
 
   renderChips();   // keeps the Elo rank chip in step with the Elo numbers
@@ -391,8 +430,9 @@ function validate() {
 
 /* ---------- Save ---------- */
 $("saveBtn").onclick = async () => {
+  syncDraft();
   const v = (k) => $("f_" + k).value.trim();
-  const num = (k) => (v(k) === "" ? 0 : parseInt(v(k), 10));
+  const draftNum = (m, k) => { const s = statDraft[m][k].trim(); return s === "" ? 0 : parseInt(s, 10); };
 
   const data = {
     id: v("id"),
@@ -402,15 +442,35 @@ $("saveBtn").onclick = async () => {
     avatar_url: avatarValue,
     badges: sortBadges(selectedBadges),
   };
-  for (const k of NUM_KEYS) data[k] = num(k);
+  for (const k of NUM_KEYS) data[k] = draftNum("solo", k);   // Solos numbers go with the profile, as before
+
+  const duoData = {};
+  for (const k of NUM_KEYS) duoData[k] = draftNum("duo", k);
 
   $("saveBtn").disabled = true;
+
+  // 1) profile + Solos numbers (original function)
   const { error } = await db.rpc("admin_save_player", {
     p_password: adminPassword,
     p_old_id: selectedId,
     p_data: data,
   });
   if (error) { $("formError").textContent = "Save failed: " + error.message; $("saveBtn").disabled = false; return; }
+  selectedId = data.id;   // the player exists now (and the ID may have changed)
+
+  // 2) Duos numbers (new function)
+  const duo = await db.rpc("admin_save_duo_stats", {
+    p_password: adminPassword,
+    p_id: data.id,
+    p_data: duoData,
+  });
+  if (duo.error) {
+    await loadPlayers();
+    $("formError").textContent = "Profile and Solos saved, but Duos failed: " + duo.error.message;
+    $("saveBtn").disabled = false;
+    return;
+  }
+
   $("infoModal").classList.add("hidden");
   await loadPlayers();
 };
