@@ -1,4 +1,3 @@
-
 /* ---------- Stat calculations ---------- */
 const round2 = (x) => String(Math.round(x * 100) / 100);
 const round1 = (x) => String(Math.round(x * 10) / 10);
@@ -48,7 +47,7 @@ function statSections(p) {
       ["Perfect to Imperfect Predictions Rate", ratioText(pp, ip, "Perfect", "Imperfect", "No imperfect predictions yet")],
     ],
     Elo: [
-      ["Current Elo", net],
+      ["Current Elo", Math.max(net, 0)],   // never shown below 0
       ["Gross Elo Earned", gee],
       ["Gross Elo Lost", gel],
       ["Net Elo", net],
