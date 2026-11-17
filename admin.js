@@ -1,4 +1,4 @@
-/* ---------- Admin Panel: password, then the two options ---------- */
+/* ---------- Admin Panel: password, then the two options ---------hi- */
 $("updateBtn").onclick = () => {
   $("pwInput").value = ""; $("pwError").textContent = "";
   $("pwModal").classList.remove("hidden"); $("pwInput").focus();
