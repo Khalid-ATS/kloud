@@ -19,7 +19,8 @@ function makeAvatar(p) {
 }
 
 // Pfp on the left, then display name, username and badge chips (Elo rank first)
-function makeHead(p) {
+// mode given (profile popup): one rank chip for that gamemode. No mode (cards): Solos and Duos chips.
+function makeHead(p, mode) {
   const head = document.createElement("div"); head.className = "p-head";
   const info = document.createElement("div"); info.className = "p-info";
 
@@ -28,7 +29,10 @@ function makeHead(p) {
   info.append(nm, us);
 
   const chips = document.createElement("div"); chips.className = "chips";
-  chips.innerHTML = rankChipHtml(forMode(p, gameMode)) + sortBadges(p.badges).map(chipHtml).join("");
+  const rankChips = mode
+    ? rankChipHtml(forMode(p, mode), mode)
+    : rankChipHtml(forMode(p, "solo"), "solo") + rankChipHtml(forMode(p, "duo"), "duo");
+  chips.innerHTML = rankChips + sortBadges(p.badges).map(chipHtml).join("");
   info.append(chips);
 
   head.append(makeAvatar(p), info);
@@ -63,18 +67,19 @@ $("search").addEventListener("input", () => renderAll());
 /* ---------- Profile popup ---------- */
 let profilePlayer = null;   // the player whose popup is open
 let profileTab = null;      // which category tag is open
+let profileMode = "solo";  // which gamemode the open popup shows (its own tabs)
 
 // Draws the popup for the current gamemode (Solos / Duos)
 function drawProfile() {
   const p = profilePlayer;
   if (!p) return;
   const body = $("profileBody");
-  const sections = statSections(forMode(p, gameMode));
+  const sections = statSections(forMode(p, profileMode));
 
   hideTip();
   body.innerHTML = "";
 
-  const head = makeHead(p); head.classList.add("big");
+  const head = makeHead(p, profileMode); head.classList.add("big");
   body.append(head);
 
   // About Me
@@ -111,10 +116,18 @@ function drawProfile() {
   }
 }
 
-function openProfile(p) {
+// Switching Solos / Duos inside the popup only changes the popup
+function setProfileMode(m) {
+  profileMode = m;
+  buildModeSeg($("profileSeg"), profileMode, setProfileMode);
+  drawProfile();
+}
+
+function openProfile(p, mode = "solo") {
   profilePlayer = p;
   profileTab = null;
-  buildModeSeg($("profileSeg"), gameMode, setGameMode);
+  profileMode = mode;
+  buildModeSeg($("profileSeg"), profileMode, setProfileMode);
   drawProfile();
   $("profileModal").classList.remove("hidden");
 }
