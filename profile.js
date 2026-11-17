@@ -28,7 +28,7 @@ function makeHead(p) {
   info.append(nm, us);
 
   const chips = document.createElement("div"); chips.className = "chips";
-  chips.innerHTML = rankChipHtml(p) + sortBadges(p.badges).map(chipHtml).join("");
+  chips.innerHTML = rankChipHtml(forMode(p, gameMode)) + sortBadges(p.badges).map(chipHtml).join("");
   info.append(chips);
 
   head.append(makeAvatar(p), info);
@@ -61,53 +61,61 @@ function render() {
 $("search").addEventListener("input", () => renderAll());
 
 /* ---------- Profile popup ---------- */
-function openProfile(p) {
-  let activeTab = null;
+let profilePlayer = null;   // the player whose popup is open
+let profileTab = null;      // which category tag is open
+
+// Draws the popup for the current gamemode (Solos / Duos)
+function drawProfile() {
+  const p = profilePlayer;
+  if (!p) return;
   const body = $("profileBody");
-  const sections = statSections(p);
+  const sections = statSections(forMode(p, gameMode));
 
-  function draw() {
-    hideTip();
-    body.innerHTML = "";
+  hideTip();
+  body.innerHTML = "";
 
-    const head = makeHead(p); head.classList.add("big");
-    body.append(head);
+  const head = makeHead(p); head.classList.add("big");
+  body.append(head);
 
-    // About Me
-    const about = document.createElement("div"); about.className = "about";
-    const title = document.createElement("div"); title.className = "about-title"; title.textContent = "About Me";
-    const text = document.createElement("div");
-    text.className = "about-text" + (p.about ? "" : " none");
-    text.textContent = p.about || "No description yet.";
-    about.append(title, text);
-    body.append(about);
+  // About Me
+  const about = document.createElement("div"); about.className = "about";
+  const title = document.createElement("div"); title.className = "about-title"; title.textContent = "About Me";
+  const text = document.createElement("div");
+  text.className = "about-text" + (p.about ? "" : " none");
+  text.textContent = p.about || "No description yet.";
+  about.append(title, text);
+  body.append(about);
 
-    // Category tags (ovals)
-    const tabs = document.createElement("div"); tabs.className = "tabs";
-    for (const name of Object.keys(sections)) {
-      const t = document.createElement("button");
-      t.type = "button";
-      t.className = "tab" + (activeTab === name ? " on" : "");
-      t.textContent = name;
-      t.onclick = () => { activeTab = activeTab === name ? null : name; draw(); };
-      tabs.append(t);
-    }
-    body.append(tabs);
-
-    // Stats for the chosen tag (rounded rectangles)
-    if (activeTab) {
-      const grid = document.createElement("div"); grid.className = "stat-grid";
-      for (const [label, value] of sections[activeTab]) {
-        const box = document.createElement("div"); box.className = "stat-box";
-        const l = document.createElement("div"); l.className = "stat-label"; l.textContent = label;
-        const v = document.createElement("div"); v.className = "stat-value"; v.textContent = value;
-        box.append(l, v); grid.append(box);
-      }
-      body.append(grid);
-    }
+  // Category tags (ovals)
+  const tabs = document.createElement("div"); tabs.className = "tabs";
+  for (const name of Object.keys(sections)) {
+    const t = document.createElement("button");
+    t.type = "button";
+    t.className = "tab" + (profileTab === name ? " on" : "");
+    t.textContent = name;
+    t.onclick = () => { profileTab = profileTab === name ? null : name; drawProfile(); };
+    tabs.append(t);
   }
+  body.append(tabs);
 
-  draw();
+  // Stats for the chosen tag (rounded rectangles)
+  if (profileTab) {
+    const grid = document.createElement("div"); grid.className = "stat-grid";
+    for (const [label, value] of sections[profileTab]) {
+      const box = document.createElement("div"); box.className = "stat-box";
+      const l = document.createElement("div"); l.className = "stat-label"; l.textContent = label;
+      const v = document.createElement("div"); v.className = "stat-value"; v.textContent = value;
+      box.append(l, v); grid.append(box);
+    }
+    body.append(grid);
+  }
+}
+
+function openProfile(p) {
+  profilePlayer = p;
+  profileTab = null;
+  buildModeSeg($("profileSeg"), gameMode, setGameMode);
+  drawProfile();
   $("profileModal").classList.remove("hidden");
 }
 function closeProfile() { hideTip(); $("profileModal").classList.add("hidden"); }
