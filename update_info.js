@@ -86,7 +86,7 @@ function renderChips() {
     gross_elo_lost: n0($("f_gross_elo_lost").value),
   };
   const rank = document.createElement("span");
-  rank.innerHTML = rankChipHtml(live);
+  rank.innerHTML = rankChipHtml(live, editMode);
   box.append(rank.firstChild);
 
   for (const k of selectedBadges) {
