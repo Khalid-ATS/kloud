@@ -27,7 +27,10 @@
   </nav>
 
   <!-- Player Profiles (opens first) -->
-  <main id="list"></main>
+  <div id="profiles">
+    <div class="mode-bar"><div id="profilesSeg" class="seg"></div></div>
+    <main id="list"></main>
+  </div>
 
   <!-- Player Rankings -->
   <section id="rankings" class="page hidden">
@@ -36,11 +39,7 @@
     <div class="filters">
       <div>
         <span class="flabel">Gamemode</span>
-        <div class="seg">
-          <button type="button" class="on">Solo</button>
-          <button type="button" disabled title="Coming soon">Duos</button>
-          <button type="button" disabled title="Coming soon">Trios</button>
-        </div>
+        <div id="rankSeg" class="seg"></div>
       </div>
       <div>
         <span class="flabel">Tier</span>
@@ -66,6 +65,7 @@
   <!-- Profile popup (opens from View Profile) -->
   <div id="profileModal" class="overlay hidden">
     <div class="modal">
+      <div class="mode-bar"><div id="profileSeg" class="seg"></div></div>
       <div id="profileBody"></div>
       <div class="actions">
         <button id="profileClose" class="btn secondary">Close</button>
@@ -119,8 +119,8 @@
     <div class="modal">
       <h2>Update Elo</h2>
       <div class="seg">
-        <button type="button" id="modeSolo">Solo</button>
-        <button type="button" disabled title="Coming soon">Duos</button>
+        <button type="button" id="modeSolo">Solos</button>
+        <button type="button" id="modeDuo">Duos</button>
         <button type="button" disabled title="Coming soon">Trios</button>
       </div>
       <div id="eloBoard" class="hidden"></div>
@@ -134,8 +134,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <!-- Order matters: each file can only use things from the files above it.
-       When you edit a file, change its ?v= number so browsers load the new copy. -->
+  <!-- Order matters: each file can only use things from the files above it. -->
   <script src="config.js"></script>
   <script src="badges.js"></script>
   <script src="ranks.js"></script>
