@@ -3,7 +3,7 @@ let tierFilter = "all";
 
 // Switch between Player Profiles and Player Rankings
 function setView(v) {
-  $("list").classList.toggle("hidden", v !== "profiles");
+  $("profiles").classList.toggle("hidden", v !== "profiles");
   $("rankings").classList.toggle("hidden", v !== "rankings");
   document.querySelectorAll(".nav-tab").forEach(b => b.classList.toggle("on", b.dataset.view === v));
   hideTip();
@@ -15,7 +15,7 @@ $("tierSel").innerHTML = `<option value="all">All</option>` +
   TIERS.map((t, i) => `<option value="${i}">${t}</option>`).join("");
 $("tierSel").onchange = () => { tierFilter = $("tierSel").value; renderRankings(); };
 
-const eloOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
+const eloOf = (p) => Math.max(n0(p.gross_elo_earned) - n0(p.gross_elo_lost), 0);   // never below 0
 const idTag = (p) => "#" + (/^\d+$/.test(p.id) ? p.id.padStart(4, "0") : p.id);
 
 // A value with a bar next to it
@@ -36,15 +36,16 @@ function renderRankings() {
   box.innerHTML = "";
   const q = $("search").value.trim().toLowerCase();
 
-  // Everyone in the chosen tier, best Elo first
-  let pool = players.map(p => ({ p, elo: eloOf(p), r: rankFor(p) }));
+  // Everyone in the chosen tier, best Elo first.
+  // x.v = the player's numbers for the chosen gamemode (Solos or Duos)
+  let pool = players.map(p => { const v = forMode(p, gameMode); return { p, v, elo: eloOf(v), r: rankFor(v) }; });
   if (tierFilter !== "all") pool = pool.filter(x => x.r.t === Number(tierFilter));
   pool.sort((a, b) => b.elo - a.elo || byId(a.p, b.p));
   pool.forEach((x, i) => { x.pos = i + 1; });
 
   const maxElo = Math.max(1, ...pool.map(x => x.elo));
-  const maxGames = Math.max(1, ...pool.map(x => n0(x.p.games_won) + n0(x.p.games_lost)));
-  const maxStreak = Math.max(1, ...pool.map(x => n0(x.p.game_streak)));
+  const maxGames = Math.max(1, ...pool.map(x => n0(x.v.games_won) + n0(x.v.games_lost)));
+  const maxStreak = Math.max(1, ...pool.map(x => n0(x.v.game_streak)));
 
   // Search only hides rows, it doesn't change anyone's position
   const shown = q ? pool.filter(x =>
@@ -59,12 +60,12 @@ function renderRankings() {
   }
 
   for (const x of shown) {
-    const p = x.p;
-    const gp = n0(p.games_won) + n0(p.games_lost);
-    const winRate = gp === 0 ? 0 : n0(p.games_won) / gp * 100;
-    const preds = n0(p.perfect_predictions) + n0(p.imperfect_predictions);
-    const acc = preds === 0 ? 0 : n0(p.perfect_predictions) / preds * 100;
-    const streak = n0(p.game_streak);
+    const p = x.p, v = x.v;
+    const gp = n0(v.games_won) + n0(v.games_lost);
+    const winRate = gp === 0 ? 0 : n0(v.games_won) / gp * 100;
+    const preds = n0(v.perfect_predictions) + n0(v.imperfect_predictions);
+    const acc = preds === 0 ? 0 : n0(v.perfect_predictions) / preds * 100;
+    const streak = n0(v.game_streak);
 
     const row = document.createElement("div");
     row.className = "brow row";
@@ -104,3 +105,21 @@ function renderAll() {
   render();
   renderRankings();
 }
+
+/* ---------- Gamemode tabs: Solos | Duos | Trios ---------- */
+// The same tabs sit on Player Profiles, Player Rankings and inside the profile popup.
+// They always show the same gamemode.
+function renderModeSegs() {
+  buildModeSeg($("profilesSeg"), gameMode, setGameMode);
+  buildModeSeg($("rankSeg"), gameMode, setGameMode);
+  buildModeSeg($("profileSeg"), gameMode, setGameMode);
+}
+
+function setGameMode(m) {
+  gameMode = m;
+  renderModeSegs();
+  renderAll();
+  if (!$("profileModal").classList.contains("hidden")) drawProfile();   // popup open: refresh its numbers
+}
+
+renderModeSegs();
