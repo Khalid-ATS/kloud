@@ -393,3 +393,28 @@ select:focus { border-color: var(--accent); }
 .modal .mode-bar { max-width: none; padding: 0 0 16px; }
 #infoModal .mode-bar { padding: 18px 0 0; }
 #profiles main { padding-top: 18px; }
+
+/* Duos: two teams side by side (Position 1 = won, Position 2 = lost) */
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .teams { grid-template-columns: 1fr; } }
+
+.team {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
+  padding: 14px; display: flex; flex-direction: column; gap: 12px;
+}
+.team.won  { border-color: rgba(76, 208, 106, .55); }
+.team.lost { border-color: rgba(224, 93, 93, .55); }
+.team-title { font-size: 14px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.team.won  .team-title { color: #4cd06a; }
+.team.lost .team-title { color: var(--danger); }
+
+.team .slots { grid-template-columns: 1fr 1fr; }
+@media (max-width: 520px) { .team .slots { grid-template-columns: 1fr; } }
+
+.team-pts { margin: 0; max-width: 260px; }
+.team-pts input { padding: 8px 10px; font-size: 14px; }
+
+/* losing team's Calculated Elo box in red instead of green */
+.team.lost .calc {
+  background: rgba(224, 93, 93, .12); border-color: rgba(224, 93, 93, .45); color: var(--danger);
+}
