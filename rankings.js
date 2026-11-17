@@ -69,7 +69,7 @@ function renderRankings() {
 
     const row = document.createElement("div");
     row.className = "brow row";
-    row.onclick = () => openProfile(p);
+    row.onclick = () => openProfile(p, gameMode);   // opens on the leaderboard's gamemode
 
     // # (top 1, 2, 3 are colored)
     const pos = document.createElement("div");
@@ -107,19 +107,15 @@ function renderAll() {
 }
 
 /* ---------- Gamemode tabs: Solos | Duos | Trios ---------- */
-// The same tabs sit on Player Profiles, Player Rankings and inside the profile popup.
-// They always show the same gamemode.
+// Player Rankings has its own tabs. (The profile popup has its own too, see profile.js.)
 function renderModeSegs() {
-  buildModeSeg($("profilesSeg"), gameMode, setGameMode);
   buildModeSeg($("rankSeg"), gameMode, setGameMode);
-  buildModeSeg($("profileSeg"), gameMode, setGameMode);
 }
 
 function setGameMode(m) {
   gameMode = m;
   renderModeSegs();
   renderAll();
-  if (!$("profileModal").classList.contains("hidden")) drawProfile();   // popup open: refresh its numbers
 }
 
 renderModeSegs();
