@@ -1,8 +1,11 @@
 /* ---------- Elo numbers you may want to tweak ---------- */
 const POS_BASE = { 1: 10, 2: 20, 3: 10, 4: 20 };
 const ZERO_MULT = { 1: 31, 2: 8, 3: 8, 4: 2 };
-const PERFECT_BONUS = 2.0;
-const IMPERFECT_PENALTY = 1.5;
+
+/* Predictions: n predictions => x(1 + n/10).  1 -> 1.1, 2 -> 1.2, 10 -> 2.0, 11 -> 2.1 ...
+   Perfect:   gaining Elo => multiplied,  losing Elo => divided
+   Imperfect: gaining Elo => divided,     losing Elo => multiplied */
+const predMultOf = (n) => (10 + n) / 10;
 
 /* Placement vs Elo ("upsets") */
 const UPSET_WIN_RATE = 0.10;  // beating a higher-Elo player: +10% of the Elo gap, per player
@@ -16,7 +19,11 @@ const RANK_MIN_MULT = 0.25;   // gains never drop below x0.25
 /* Same logic as rankFor() in ranks.js: 100 Elo per division, 0 = Bronze I ... 29 = Obsidian V (2,900+) */
 const rankIndexOf = (elo) => Math.min(Math.floor(Math.max(elo, 0) / 100), 29);
 
-const netOf = (p) => n0(p.gross_elo_earned) - n0(p.gross_elo_lost);
+let eloMode = null;   // "solo" or "duo": which gamemode this game is for
+
+// The player's numbers for the chosen gamemode (Solos or Duos)
+const viewOf = (p) => forMode(p, eloMode);
+const netOf = (p) => n0(viewOf(p).gross_elo_earned) - n0(viewOf(p).gross_elo_lost);
 const sgn = (x) => (x > 0 ? "+" : "") + x;
 
 /* Points -> multiplier: 310 points => x1.310, 90 points => x1.090 */
@@ -26,7 +33,9 @@ const pointsMultOf = (pts) => 1 + pts / 1000;
 function openElo() {
   $("eloBoard").classList.add("hidden");
   $("eloBoard").innerHTML = "";
+  eloMode = null;
   $("modeSolo").classList.remove("on");
+  $("modeDuo").classList.remove("on");
   $("eloMsg").textContent = "Choose a gamemode.";
   $("eloError").textContent = "";
   $("eloSave").disabled = true;
@@ -34,10 +43,17 @@ function openElo() {
 }
 
 $("eloCancel").onclick = () => $("eloModal").classList.add("hidden");
-$("modeSolo").onclick = () => {
-  $("modeSolo").classList.add("on");
-  buildEloBoard();
-};
+
+// Picking a gamemode. If the board is already open, the typed numbers stay and are recalculated.
+function pickEloMode(m) {
+  eloMode = m;
+  $("modeSolo").classList.toggle("on", m === "solo");
+  $("modeDuo").classList.toggle("on", m === "duo");
+  if ($("eloBoard").classList.contains("hidden")) buildEloBoard();
+  else recalcElo();
+}
+$("modeSolo").onclick = () => pickEloMode("solo");
+$("modeDuo").onclick = () => pickEloMode("duo");
 
 /* ---------- Player slots ---------- */
 function makeSlot(i) {
@@ -209,8 +225,6 @@ function recalcElo() {
     const pts = r.ptsV === "" ? 0 : parseInt(r.ptsV, 10);
 
     const base = POS_BASE[r.pos];
-    const perfBonus = perf * PERFECT_BONUS;
-    const impPen = imp * IMPERFECT_PENALTY;
 
     // Placement vs Elo. Position 1 is best (lower number = better).
     let upset = 0;
@@ -225,7 +239,7 @@ function recalcElo() {
     }
     upset = Math.round(upset);
 
-    let total = base + perfBonus - impPen + adj + upset;
+    let total = base + adj + upset;
 
     // Placement multiplier applies ONLY when current Elo is exactly 0.
     const zeroUsed = r.elo === 0 ? ZERO_MULT[r.pos] : null;
@@ -234,9 +248,20 @@ function recalcElo() {
       total *= zeroUsed;
     }
 
+    // Predictions: 2 perfect = x1.2, 2 imperfect = x1.2 (see predMultOf).
+    // Gaining Elo: perfect multiplies, imperfect divides.
+    // Losing Elo:  perfect divides,     imperfect multiplies.
+    const perfM = predMultOf(perf);
+    const impM = predMultOf(imp);
+    const gaining = total > 0;
+    const losing = total < 0;
+
+    if (gaining) total = total * perfM / impM;
+    else if (losing) total = total / perfM * impM;
+
     // Game streak multiplier.
     // 0 streak = x1, 1 streak = x2, 2 streak = x4, etc.
-    const streak = Math.max(0, n0(r.p.game_streak));
+    const streak = Math.max(0, n0(viewOf(r.p).game_streak));
     const streakMult = streak > 0 ? streak * 2 : 1;
 
     // Points multiplier: 310 points = x1.310, 90 points = x1.090
@@ -263,7 +288,9 @@ function recalcElo() {
       change > 0 ? "+" + change : change === 0 ? "+0" : String(change);
 
     $(`e${r.i}_why`).textContent =
-      `base ${sgn(base)} · predictions ${sgn(perfBonus - impPen)} · others ${sgn(adj)} · upset ${sgn(upset)}` +
+      `base ${sgn(base)} · others ${sgn(adj)} · upset ${sgn(upset)}` +
+      (perf > 0 && (gaining || losing) ? ` · ${gaining ? "×" : "÷"}${perfM.toFixed(1)} (perfect)` : "") +
+      (imp > 0 && (gaining || losing) ? ` · ${gaining ? "÷" : "×"}${impM.toFixed(1)} (imperfect)` : "") +
       (rankMult !== 1 ? ` · ×${rankMult.toFixed(2)} (rank)` : "") +
       (zeroUsed !== null ? ` · ×${zeroUsed} (0 Elo)` : "") +
       (streakMult !== 1 ? ` · ×${streakMult} (game streak)` : "") +
@@ -292,7 +319,8 @@ $("eloSave").onclick = async () => {
 
   $("eloSave").disabled = true;
 
-  const { error } = await db.rpc("apply_elo_game", {
+  // Solos use the original function, Duos use the new one (see the SQL file)
+  const { error } = await db.rpc(eloMode === "duo" ? "apply_elo_game_duo" : "apply_elo_game", {
     p_password: adminPassword,
     p_data: eloResult
   });
