@@ -387,3 +387,9 @@ select:focus { border-color: var(--accent); }
 .mult-row label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 .mult-row input { text-align: center; }
 #eloModal .seg button.on { background: #3a3a44; color: var(--text); }
+
+/* Gamemode tabs: Solos | Duos | Trios */
+.mode-bar { max-width: 1100px; margin: 0 auto; padding: 22px 20px 0; }
+.modal .mode-bar { max-width: none; padding: 0 0 16px; }
+#infoModal .mode-bar { padding: 18px 0 0; }
+#profiles main { padding-top: 18px; }
